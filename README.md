@@ -1,4 +1,4 @@
-# NebliDex
+# NebliDex - A Neblio-based atomic swap decentralized exchange
 NebliDex is a full service decentralized exchange that users can use to trade cryptocurrencies such as Bitcoin, Litecoin, Neblio and Neblio based assets (NTP1 tokens) without using a centralized service or match maker. Bitcoin in NebliDex represent actual Bitcoin. There are no gateways to convert Bitcoin to any other representative tokens. The trades are performed using atomic swap functionality as defined by the Decred specification with some modifications. The matchmaking is performed by Critical Nodes on the network which are volunteers that have at least 39,000 NDEX tokens. Matchmakers/Validators get rewarded by receiving NDEX tokens for their service. Anyone can become a validator as long as they meet the requirements specified in readme_first document.
 
 ## Bug Reports
