@@ -67,7 +67,7 @@
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
     <Reference Include="System.Data.SQLite">
-      <HintPath>..\..\..\Downloads\sqlite-netFx45-static-binary-bundle-Win32-2012-1.0.107.0\System.Data.SQLite.dll</HintPath>
+      <HintPath>System.Data.SQLite.dll</HintPath>
     </Reference>
     <Reference Include="System.Drawing" />
     <Reference Include="System.Net">
