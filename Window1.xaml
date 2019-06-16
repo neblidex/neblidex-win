@@ -1,0 +1,1123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+	x:Class="NebliDex.Window1" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	Title="NebliDex: A Decentralized Neblio Exchange"
+	Height="678"
+	Width="900" MinHeight="600" MinWidth="892" Icon="logo.ico" Loaded="Window_Loaded" Closing="Window_Closing">
+	<Window.Resources>
+	    <SolidColorBrush x:Key="Light_ComboBoxNormalBorderBrush" Color="#DCDCDC" />
+		<SolidColorBrush x:Key="Light_ComboBoxNormalBackgroundBrush" Color="#fff" />
+		<SolidColorBrush x:Key="Light_ComboBoxDisabledForegroundBrush" Color="#888" />
+		<SolidColorBrush x:Key="Light_ComboBoxDisabledBackgroundBrush" Color="#eee" />
+		<SolidColorBrush x:Key="Light_ComboBoxDisabledBorderBrush" Color="#888" />
+		
+		<ControlTemplate TargetType="ToggleButton" x:Key="Light_ComboBoxToggleButtonTemplate">
+		<Grid>
+		  <Grid.ColumnDefinitions>
+		    <ColumnDefinition />
+		    <ColumnDefinition Width="20" />
+		  </Grid.ColumnDefinitions>
+		  <Border Grid.ColumnSpan="2" Name="Border"
+		          BorderBrush="{StaticResource Light_ComboBoxNormalBorderBrush}" 
+		          CornerRadius="0" BorderThickness="1, 1, 1, 1" 
+		          Background="{StaticResource Light_ComboBoxNormalBackgroundBrush}" />
+		  <Border Grid.Column="1" Margin="1, 1, 1, 1" BorderBrush="#444" Name="ButtonBorder"
+		          CornerRadius="0, 0, 0, 0" BorderThickness="0, 0, 0, 0" 
+		          Background="{StaticResource Light_ComboBoxNormalBackgroundBrush}" />
+		
+		  <Path Name="Arrow" Grid.Column="1" 
+		        Data="M0,0 L0,2 L4,6 L8,2 L8,0 L4,4 z"
+		        HorizontalAlignment="Center" Fill="#444"
+		        VerticalAlignment="Center" />
+		</Grid>
+		<ControlTemplate.Triggers>
+		  <Trigger Property="UIElement.IsMouseOver" Value="True">
+		    <Setter Property="Panel.Background" TargetName="ButtonBorder" Value="WhiteSmoke"/>
+			<Setter Property="Panel.Background" TargetName="Border" Value="WhiteSmoke"/>
+		  </Trigger>
+		  <Trigger Property="ToggleButton.IsChecked" Value="True">
+		    <Setter Property="Panel.Background" TargetName="ButtonBorder" Value="WhiteSmoke"/>
+		    <Setter Property="Shape.Fill" TargetName="Arrow" Value="#FF8D979E"/>
+		  </Trigger>
+		  <Trigger Property="UIElement.IsEnabled" Value="False">
+		    <Setter Property="Panel.Background" TargetName="Border" Value="{StaticResource Light_ComboBoxDisabledBackgroundBrush}"/>
+		    <Setter Property="Panel.Background" TargetName="ButtonBorder" Value="{StaticResource Light_ComboBoxDisabledBackgroundBrush}"/>
+		    <Setter Property="Border.BorderBrush" TargetName="ButtonBorder" Value="{StaticResource Light_ComboBoxDisabledBorderBrush}"/>
+		    <Setter Property="TextElement.Foreground" Value="{StaticResource Light_ComboBoxDisabledForegroundBrush}"/>
+		    <Setter Property="Shape.Fill" TargetName="Arrow" Value="#999"/>
+		  </Trigger>
+		</ControlTemplate.Triggers>
+		</ControlTemplate>
+		
+		<Style x:Key="Light_ComboBoxFlatStyle"  TargetType="{x:Type ComboBox}">
+		<Setter Property="UIElement.SnapsToDevicePixels" Value="True"/>
+		<Setter Property="FrameworkElement.OverridesDefaultStyle" Value="True"/>
+		<Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+		<Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+		<Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+		<Setter Property="TextElement.Foreground" Value="Black"/>
+		<Setter Property="FrameworkElement.FocusVisualStyle" Value="{x:Null}"/>
+		<Setter Property="Control.Template">
+		  <Setter.Value>
+		    <ControlTemplate TargetType="ComboBox">
+		      <Grid>
+		        <ToggleButton Name="ToggleButton" Grid.Column="2"
+		            ClickMode="Press" Focusable="False"
+		            IsChecked="{Binding Path=IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+		            Template="{StaticResource Light_ComboBoxToggleButtonTemplate}"/>
+		
+		        <ContentPresenter Name="ContentSite" Margin="5, 3, 23, 3" IsHitTestVisible="False"
+		                          HorizontalAlignment="Left" VerticalAlignment="Center"                              
+		                          Content="{TemplateBinding ComboBox.SelectionBoxItem}" 
+		                          ContentTemplate="{TemplateBinding ComboBox.SelectionBoxItemTemplate}"
+		                          ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"/>
+		        <TextBox Name="PART_EditableTextBox" Margin="3, 3, 23, 3"                     
+		                 IsReadOnly="{TemplateBinding IsReadOnly}"
+		                 Visibility="Hidden" Background="Transparent"
+		                 HorizontalAlignment="Left" VerticalAlignment="Center"
+		                 Focusable="True" >
+		          <TextBox.Template>
+		            <ControlTemplate TargetType="TextBox" >
+		              <Border Name="PART_ContentHost" Focusable="False" />
+		            </ControlTemplate>
+		          </TextBox.Template>
+		        </TextBox>
+		        <!-- Popup showing items -->
+		        <Popup Name="Popup" Placement="Bottom"
+		               Focusable="False" AllowsTransparency="True"
+		               IsOpen="{TemplateBinding ComboBox.IsDropDownOpen}"
+		               PopupAnimation="Slide">
+		          <Grid Name="DropDown" SnapsToDevicePixels="True"
+		                MinWidth="{TemplateBinding FrameworkElement.ActualWidth}"
+		                MaxHeight="{TemplateBinding ComboBox.MaxDropDownHeight}">
+		            <Border Name="DropDownBorder" Background="White" Margin="0, 1, 0, 0"
+		                    CornerRadius="0" BorderThickness="1,1,1,1" 
+		                    BorderBrush="{StaticResource Light_ComboBoxNormalBorderBrush}"/>
+		            <ScrollViewer Margin="4" SnapsToDevicePixels="True">
+		              <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+		            </ScrollViewer>
+		          </Grid>
+		        </Popup>
+		      </Grid>
+		      <ControlTemplate.Triggers>
+		        <Trigger Property="ItemsControl.HasItems" Value="False">
+		          <Setter Property="FrameworkElement.MinHeight" TargetName="DropDownBorder" Value="95"/>
+		        </Trigger>
+		        <Trigger Property="UIElement.IsEnabled" Value="False">
+		          <Setter Property="TextElement.Foreground" Value="{StaticResource Light_ComboBoxDisabledForegroundBrush}"/>
+		        </Trigger>
+		        <Trigger Property="ItemsControl.IsGrouping" Value="True">
+		          <Setter Property="ScrollViewer.CanContentScroll" Value="False"/>
+		        </Trigger>
+		        <Trigger Property="ComboBox.IsEditable" Value="True">
+		          <Setter Property="KeyboardNavigation.IsTabStop" Value="False"/>
+		          <Setter Property="UIElement.Visibility" TargetName="PART_EditableTextBox" Value="Visible"/>
+		          <Setter Property="UIElement.Visibility" TargetName="ContentSite" Value="Hidden"/>
+		        </Trigger>
+		      </ControlTemplate.Triggers>
+		    </ControlTemplate>
+		   </Setter.Value>
+		   </Setter>
+	   </Style>
+	
+	    <SolidColorBrush x:Key="Dark_ComboBoxNormalBorderBrush" Color="Black" />
+		<SolidColorBrush x:Key="Dark_ComboBoxNormalBackgroundBrush" Color="Black" />
+		<SolidColorBrush x:Key="Dark_ComboBoxNormalForegroundBrush" Color="#999999" />
+		<SolidColorBrush x:Key="Dark_ComboBoxDisabledForegroundBrush" Color="DarkGray"/>
+		<SolidColorBrush x:Key="Dark_ComboBoxDisabledBackgroundBrush" Color="Black" />
+		<SolidColorBrush x:Key="Dark_ComboBoxDisabledBorderBrush" Color="Black" />
+		
+		<ControlTemplate TargetType="ToggleButton" x:Key="Dark_ComboBoxToggleButtonTemplate">
+		<Grid>
+		  <Grid.ColumnDefinitions>
+		    <ColumnDefinition />
+		    <ColumnDefinition Width="20" />
+		  </Grid.ColumnDefinitions>
+		  <Border Grid.ColumnSpan="2" Name="Border"
+		          BorderBrush="{StaticResource Dark_ComboBoxNormalBorderBrush}" 
+		          CornerRadius="0" BorderThickness="1, 1, 1, 1" 
+		          Background="{StaticResource Dark_ComboBoxNormalBackgroundBrush}" />
+		  <Border Grid.Column="1" Margin="1, 1, 1, 1" BorderBrush="{StaticResource Dark_ComboBoxNormalBorderBrush}" Name="ButtonBorder"
+		          CornerRadius="0, 0, 0, 0" BorderThickness="0, 0, 0, 0" 
+		          Background="{StaticResource Dark_ComboBoxNormalBackgroundBrush}" />
+		
+		  <Path Name="Arrow" Grid.Column="1" 
+		        Data="M0,0 L0,2 L4,6 L8,2 L8,0 L4,4 z"
+		        HorizontalAlignment="Center" Fill="#444"
+		        VerticalAlignment="Center" />
+		</Grid>
+		<ControlTemplate.Triggers>
+		  <Trigger Property="UIElement.IsMouseOver" Value="True">
+		    <Setter Property="Panel.Background" TargetName="ButtonBorder" Value="#090B0D"/>
+			<Setter Property="Panel.Background" TargetName="Border" Value="#090B0D"/>
+		  </Trigger>
+		  <Trigger Property="ToggleButton.IsChecked" Value="True">
+		    <Setter Property="Panel.Background" TargetName="ButtonBorder" Value="#090B0D"/>
+		    <Setter Property="Shape.Fill" TargetName="Arrow" Value="#444"/>
+		  </Trigger>
+		  <Trigger Property="UIElement.IsEnabled" Value="False">
+		    <Setter Property="Panel.Background" TargetName="Border" Value="{StaticResource Dark_ComboBoxDisabledBackgroundBrush}"/>
+		    <Setter Property="Panel.Background" TargetName="ButtonBorder" Value="{StaticResource Dark_ComboBoxDisabledBackgroundBrush}"/>
+		    <Setter Property="Border.BorderBrush" TargetName="ButtonBorder" Value="{StaticResource Dark_ComboBoxDisabledBorderBrush}"/>
+		    <Setter Property="TextElement.Foreground" Value="{StaticResource Dark_ComboBoxDisabledForegroundBrush}"/>
+		    <Setter Property="Shape.Fill" TargetName="Arrow" Value="{StaticResource Dark_ComboBoxDisabledForegroundBrush}"/>
+		  </Trigger>
+		</ControlTemplate.Triggers>
+		</ControlTemplate>
+		
+		<Style x:Key="Dark_ComboBoxFlatStyle"  TargetType="{x:Type ComboBox}">
+			<Setter Property="UIElement.SnapsToDevicePixels" Value="True"/>
+			<Setter Property="FrameworkElement.OverridesDefaultStyle" Value="True"/>
+			<Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+			<Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+			<Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+			<Setter Property="TextElement.Foreground" Value="{StaticResource Dark_ComboBoxNormalForegroundBrush}"/>
+			<Setter Property="FrameworkElement.FocusVisualStyle" Value="{x:Null}"/>
+			<Setter Property="Control.Template">
+			  <Setter.Value>
+			    <ControlTemplate TargetType="ComboBox">
+			      <Grid>
+			        <ToggleButton Name="ToggleButton" Grid.Column="2"
+			            ClickMode="Press" Focusable="False"
+			            IsChecked="{Binding Path=IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+			            Template="{StaticResource Dark_ComboBoxToggleButtonTemplate}"/>
+			
+			        <ContentPresenter Name="ContentSite" Margin="5, 3, 23, 3" IsHitTestVisible="False"
+			                          HorizontalAlignment="Left" VerticalAlignment="Center"                              
+			                          Content="{TemplateBinding ComboBox.SelectionBoxItem}" 
+			                          ContentTemplate="{TemplateBinding ComboBox.SelectionBoxItemTemplate}"
+			                          ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"/>
+			        <TextBox Name="PART_EditableTextBox" Margin="3, 3, 23, 3"                     
+			                 IsReadOnly="{TemplateBinding IsReadOnly}"
+			                 Visibility="Hidden" Background="Transparent"
+			                 HorizontalAlignment="Left" VerticalAlignment="Center"
+			                 Focusable="True" >
+			          <TextBox.Template>
+			            <ControlTemplate TargetType="TextBox" >
+			              <Border Name="PART_ContentHost" Focusable="False" />
+			            </ControlTemplate>
+			          </TextBox.Template>
+			        </TextBox>
+			        <!-- Popup showing items -->
+			        <Popup Name="Popup" Placement="Bottom"
+			               Focusable="False" AllowsTransparency="True"
+			               IsOpen="{TemplateBinding ComboBox.IsDropDownOpen}"
+			               PopupAnimation="Slide">
+			          <Grid Name="DropDown" SnapsToDevicePixels="True"
+			                MinWidth="{TemplateBinding FrameworkElement.ActualWidth}"
+			                MaxHeight="{TemplateBinding ComboBox.MaxDropDownHeight}">
+			            <Border Name="DropDownBorder" Background="Black" Margin="0, 1, 0, 0"
+			                    CornerRadius="0" BorderThickness="1,1,1,1" 
+			                    BorderBrush="{StaticResource Dark_ComboBoxNormalBorderBrush}"/>
+			            <ScrollViewer Margin="4" SnapsToDevicePixels="True">
+			              <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+			            </ScrollViewer>
+			          </Grid>
+			        </Popup>
+			      </Grid>
+			      <ControlTemplate.Triggers>
+			        <Trigger Property="ItemsControl.HasItems" Value="False">
+			          <Setter Property="FrameworkElement.MinHeight" TargetName="DropDownBorder" Value="95"/>
+			        </Trigger>
+			        <Trigger Property="UIElement.IsEnabled" Value="False">
+			          <Setter Property="TextElement.Foreground" Value="{StaticResource Dark_ComboBoxDisabledForegroundBrush}"/>
+			        </Trigger>
+			        <Trigger Property="ItemsControl.IsGrouping" Value="True">
+			          <Setter Property="ScrollViewer.CanContentScroll" Value="False"/>
+			        </Trigger>
+			        <Trigger Property="ComboBox.IsEditable" Value="True">
+			          <Setter Property="KeyboardNavigation.IsTabStop" Value="False"/>
+			          <Setter Property="UIElement.Visibility" TargetName="PART_EditableTextBox" Value="Visible"/>
+			          <Setter Property="UIElement.Visibility" TargetName="ContentSite" Value="Hidden"/>
+			        </Trigger>
+			      </ControlTemplate.Triggers>
+			    </ControlTemplate>
+			   </Setter.Value>
+		   </Setter>
+	   </Style>
+		
+		<SolidColorBrush x:Key="Custom_Scrollbar_Color" Color="Black" />
+
+	    <Style x:Key="Custom_ScrollBarLineButton" TargetType="{x:Type RepeatButton}">
+	        <Setter Property="Visibility" Value="Hidden"/>
+	        <Setter Property="SnapsToDevicePixels" Value="True"/>
+	        <Setter Property="OverridesDefaultStyle" Value="true"/>
+	        <Setter Property="Focusable" Value="false"/>
+	        <Setter Property="Template">
+	            <Setter.Value>
+	                <ControlTemplate TargetType="{x:Type RepeatButton}">
+	                    <Border Name="Border" Margin="1" CornerRadius="2" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding Background}" BorderThickness="1">
+	                        <Path HorizontalAlignment="Center" VerticalAlignment="Center" Fill="{TemplateBinding Background}" Data="{Binding Path=Content, RelativeSource={RelativeSource TemplatedParent}}" />
+	                    </Border>
+	                    <ControlTemplate.Triggers>
+	                        <Trigger Property="IsPressed" Value="true">
+	                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource Custom_Scrollbar_Color}" />
+	                        </Trigger>
+	                        <Trigger Property="IsEnabled" Value="false">
+	                            <Setter Property="Foreground" Value="{DynamicResource Custom_Scrollbar_Color}"/>
+	                        </Trigger>
+	                    </ControlTemplate.Triggers>
+	                </ControlTemplate>
+	            </Setter.Value>
+	        </Setter>
+	    </Style>
+		
+	    <Style x:Key="Custom_ScrollBarPageButton" TargetType="{x:Type RepeatButton}">
+	        <Setter Property="Visibility" Value="Hidden"/>
+	        <Setter Property="SnapsToDevicePixels" Value="True"/>
+	        <Setter Property="OverridesDefaultStyle" Value="true"/>
+	        <Setter Property="IsTabStop" Value="false"/>
+	        <Setter Property="Focusable" Value="false"/>
+	        <Setter Property="Template">
+	            <Setter.Value>
+	                <ControlTemplate TargetType="{x:Type RepeatButton}">
+	                    <Border Background="{DynamicResource Custom_Scrollbar_Color}" />
+	                </ControlTemplate>
+	            </Setter.Value>
+	        </Setter>
+	    </Style>
+
+	    <Style x:Key="Custom_ScrollBarThumb" TargetType="{x:Type Thumb}">
+	        <Setter Property="SnapsToDevicePixels" Value="True"/>
+	        <Setter Property="OverridesDefaultStyle" Value="true"/>
+	        <Setter Property="IsTabStop" Value="false"/>
+	        <Setter Property="Focusable" Value="false"/>
+	        <Setter Property="Template">
+	            <Setter.Value>
+	                <ControlTemplate TargetType="{x:Type Thumb}">
+	                    <Border CornerRadius="4" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding Background}" BorderThickness="0"  Width="8" Margin="8,0,-2,0"/>
+	            		<ControlTemplate.Triggers>
+	                	</ControlTemplate.Triggers>
+	            	</ControlTemplate>
+	            </Setter.Value>
+	        </Setter>
+	    </Style>
+		
+	    <ControlTemplate x:Key="Custom_VerticalScrollBar" TargetType="{x:Type ScrollBar}">
+	        <Grid>
+	            <Grid.RowDefinitions>
+	                <RowDefinition MaxHeight="0"/>
+	                <RowDefinition Height="0.00001*"/>
+	                <RowDefinition MaxHeight="0"/>
+	            </Grid.RowDefinitions>
+	            <Border Grid.RowSpan="3" CornerRadius="2" Background="Transparent" />
+	    		<RepeatButton Grid.Row="0" Style="{StaticResource Custom_ScrollBarLineButton}" Height="18" Command="ScrollBar.LineUpCommand" Content="M 0 4 L 8 4 L 4 0 Z" />
+	    		<Track Name="PART_Track" Grid.Row="1" IsDirectionReversed="true">
+		       		<Track.DecreaseRepeatButton>
+		            	<RepeatButton Style="{StaticResource Custom_ScrollBarPageButton}" Command="ScrollBar.PageUpCommand" />
+		        	</Track.DecreaseRepeatButton>
+		        	<Track.Thumb>
+		            	<Thumb Style="{StaticResource Custom_ScrollBarThumb}" Margin="1,0,1,0" Background="{TemplateBinding Background}" />
+		        	</Track.Thumb>
+		        	<Track.IncreaseRepeatButton>
+		            	<RepeatButton Style="{StaticResource Custom_ScrollBarPageButton}" Command="ScrollBar.PageDownCommand" />
+		            </Track.IncreaseRepeatButton>
+	            </Track>
+	            <RepeatButton Grid.Row="3" Style="{StaticResource Custom_ScrollBarLineButton}" Height="18" Command="ScrollBar.LineDownCommand" Content="M 0 0 L 4 4 L 8 0 Z"/>
+	        </Grid>
+	    </ControlTemplate>
+		
+	    <Style x:Key="{x:Type ScrollBar}" TargetType="{x:Type ScrollBar}">
+	        <Style.Triggers>
+	        	<MultiDataTrigger>
+	        		<MultiDataTrigger.Conditions>
+	        			<Condition Binding="{Binding Background, ElementName=Main_Grid_View}" Value="White"/>
+	        			<Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Orientation}" Value="Vertical"/>
+	        		</MultiDataTrigger.Conditions>
+	        		<MultiDataTrigger.Setters>
+				        <Setter Property="SnapsToDevicePixels" Value="True"/>
+				        <Setter Property="OverridesDefaultStyle" Value="True"/>					
+		                <Setter Property="Width" Value="18"/>
+		                <Setter Property="Height" Value="Auto" />
+	        			<Setter Property="Background" Value="Gray"/>
+		                <Setter Property="Template" Value="{StaticResource Custom_VerticalScrollBar}" />	        		
+	        		</MultiDataTrigger.Setters>
+	        	</MultiDataTrigger>
+	        	<MultiDataTrigger>
+	        		<MultiDataTrigger.Conditions>
+	        			<Condition Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black"/>
+	        			<Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Orientation}" Value="Vertical"/>
+	        		</MultiDataTrigger.Conditions>
+	        		<MultiDataTrigger.Setters>
+				        <Setter Property="SnapsToDevicePixels" Value="True"/>
+				        <Setter Property="OverridesDefaultStyle" Value="True"/>					
+		                <Setter Property="Width" Value="18"/>
+		                <Setter Property="Height" Value="Auto" />
+	        			<Setter Property="Background" Value="#999999"/>
+		                <Setter Property="Template" Value="{StaticResource Custom_VerticalScrollBar}" />	        		
+	        		</MultiDataTrigger.Setters>
+	        	</MultiDataTrigger>	    	
+	        </Style.Triggers>
+	    </Style>
+	</Window.Resources>
+	
+	<DockPanel LastChildFill="True">
+	    <Menu DockPanel.Dock="Top">
+	        <MenuItem Header="_File">
+	        	<MenuItem Header="Encrypt Wallet" Click="Toggle_Encryption" Name="Wallet_Enc_Title"/>
+	            <MenuItem Header="Backup Wallet" Click="Save_Backup_Dialog"/>
+	        	<MenuItem Header="Import NebliDex Wallet" Click="Open_Backup_Dialog"/>
+	        	<MenuItem Name="CN_Menu_Clear" Header="Clear CN Data" Click="Request_ClearCNData" Visibility="Collapsed"/>
+	            <MenuItem Header="Run in Background" Click="Run_Background"/>
+	            <MenuItem Header="Exit" Click="Close_Program"/>
+	        </MenuItem>
+	        <MenuItem Header="_Configurations">
+	        	<MenuItem Header="Themes">
+	        		<MenuItem Name="Default_UILook_Option" Header="Default" IsCheckable="True" IsChecked="True" Click="Select_UI_Look" />
+	        		<MenuItem Name="Light_UILook_Option" Header="Light" IsCheckable="True" Click="Select_UI_Look" />
+	        		<MenuItem Name="Dark_UILook_Option" Header="Dark" IsCheckable="True" Click="Select_UI_Look" />
+	        	</MenuItem>
+	        	<MenuItem Header="Change Default DNS Seed" Click="Open_DNS_Seed"/>
+	            <MenuItem Name="Menu_Item_CN" Header="Activate As Critical Node" IsCheckable="True" Click="Request_CN_Status" />
+	    		<MenuItem Header="Change Wallet Addresses" Click="Request_Change_Address"/>
+	        </MenuItem>
+	        <MenuItem Header="_Export">
+	        	<MenuItem Header="Export All Trade History" Click="Save_All_Trades"/>
+	            <MenuItem Header="Export All CN Fee Data" Click="Save_All_CNHx" Name="Export_CN_Fee" Visibility="Collapsed"/>
+	        </MenuItem>
+	    </Menu>
+		<StatusBar Name="Status_Bar" DockPanel.Dock="Bottom">
+			<StatusBarItem FontWeight="Bold" Name="Fee_Status">
+				Not Fully Connected:
+			</StatusBarItem>
+			<StatusBarItem Name="CN_Fee">
+				CN Fee: 10 NDEX
+			</StatusBarItem>
+			<Separator />
+			<StatusBarItem Name="NEBL_Fee">
+				NEBL Fee: N/A
+			</StatusBarItem>
+			<Separator />
+			<StatusBarItem Name="Base_Pair_Fee">
+				
+			</StatusBarItem>
+			<Separator Name="Base_Pair_Separator" />
+			<StatusBarItem Name="CN_Info">
+			</StatusBarItem>
+		</StatusBar>
+		<Grid Background="#BFBFBF" Name="Main_Grid_View">
+		    <Grid.RowDefinitions>
+		        <RowDefinition Height="6*"/>
+		        <RowDefinition Height="3"/>
+		        <RowDefinition Height="4*"/>
+		    </Grid.RowDefinitions>
+		    <Grid.ColumnDefinitions>
+		        <ColumnDefinition Width="3*"/>
+		        <ColumnDefinition Width="3"/>
+		        <ColumnDefinition Width="7*"/>
+		    </Grid.ColumnDefinitions>
+			
+			<Border Grid.Column="1" Grid.Row="0" />			
+			<Border Grid.Column="0" Grid.Row="1" />
+			<Border Grid.Column="1" Grid.Row="1" />
+			<Border Grid.Column="2" Grid.Row="1" />			
+			<Border Grid.Column="1" Grid.Row="2" />
+						
+			<Border Grid.Column="0" Grid.Row="3" />
+			<Border Grid.Column="3" Grid.Row="3" />
+			<Border Grid.Column="0" Grid.Row="0" />
+			
+			<Grid Grid.Column="0" Grid.Row="0">
+			    <Grid.RowDefinitions>
+			        <RowDefinition Height="Auto"/>
+			        <RowDefinition Height="4*"/>
+			        <RowDefinition Height="4*"/>
+			    </Grid.RowDefinitions>
+				
+				<StackPanel Name="Market_Box_View" Orientation="Horizontal" Grid.Row="0" Margin="3 5" Background="#0A182C" MaxWidth="260" HorizontalAlignment="Left">
+					<ComboBox Name="Market_Box" HorizontalAlignment="Left" MaxWidth="150" FontSize="20" SelectionChanged="Change_Market">
+					</ComboBox>
+					<Label Name="Market_Percent" Margin="5 0" Content="00.00%"  FontWeight="Bold" FontSize="18" Foreground="White" />
+				</StackPanel>
+
+                <ListView Margin="3" Name="Selling_View" SizeChanged="TradeListView_SizeChanged" Grid.Row="1" MouseDoubleClick="Select_Order" 
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled" PreviewMouseDown="Reset_AutoScroll" BorderThickness="1.000001">
+     					<ListView.ItemContainerStyle>
+							<Style TargetType="{x:Type ListViewItem}">
+								<Setter Property="Visibility" Value="{Binding In_Order}"/>
+				                <Style.Triggers>
+									<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+										<Setter Property="Foreground" Value="#999999" />
+										<Setter Property="Background" Value="#090B0D"/>				                	
+									</DataTrigger>	
+				               </Style.Triggers>    						
+							</Style>
+						</ListView.ItemContainerStyle>
+                		<ListView.ItemsPanel>
+                			<ItemsPanelTemplate>
+                				<VirtualizingStackPanel VerticalAlignment="Bottom" />
+                			</ItemsPanelTemplate>
+                		</ListView.ItemsPanel>
+						<ListView.Resources>
+							<Style TargetType="GridViewColumnHeader">
+								<Style.Triggers>
+									<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="White">
+										<Setter Property="Background" Value="White" />
+										<Setter Property="Foreground" Value="Black" />
+									</DataTrigger>
+									<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+										<Setter Property="Background" Value="#090B0D" />
+										<Setter Property="Foreground" Value="#999999" />
+								        <Setter Property="Template">
+								            <Setter.Value>
+								                <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
+								                    <TextBlock Text="{TemplateBinding Content}" Padding="5" Width="{TemplateBinding Width}" TextAlignment="Center " />
+								                </ControlTemplate>
+								            </Setter.Value>
+								        </Setter>									
+									</DataTrigger>								
+								</Style.Triggers>
+							</Style>
+						</ListView.Resources>
+                        <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="Price">
+										<GridViewColumn.CellTemplate>
+									        <DataTemplate>
+									            <TextBlock Text="{Binding Format_Price}" Foreground="#EA0070" FontSize="14" FontWeight="Bold"/>
+									        </DataTemplate>
+									    </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Amount">
+										<GridViewColumn.CellTemplate>
+									        <DataTemplate>
+									            <TextBlock Text="{Binding Format_Amount}" FontSize="14" />
+									        </DataTemplate>
+									    </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Total">
+										<GridViewColumn.CellTemplate>
+									        <DataTemplate>
+									            <TextBlock Text="{Binding Format_Total}" FontSize="14" />
+									        </DataTemplate>
+									    </GridViewColumn.CellTemplate>
+									</GridViewColumn>
+                                </GridView>
+                        </ListView.View>
+                </ListView>
+			
+                <ListView Margin="3" Name="Buying_View" SizeChanged="TradeListView_SizeChanged" Grid.Row="2" MouseDoubleClick="Select_Order" 
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled" PreviewMouseDown="Reset_AutoScroll" BorderThickness="1.000001">
+                        <ListView.Resources>
+                                <Style TargetType="{x:Type GridViewColumnHeader}">
+                                       	<Setter Property="Visibility" Value="Collapsed" />
+                                </Style>
+                        </ListView.Resources>
+						<ListView.ItemContainerStyle>
+							<Style TargetType="{x:Type ListViewItem}">
+								<Setter Property="Visibility" Value="{Binding In_Order}"/>
+				                <Style.Triggers>
+									<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+										<Setter Property="Foreground" Value="#999999" />
+										<Setter Property="Background" Value="#090B0D"/>				                	
+									</DataTrigger>	
+				               </Style.Triggers>  							
+							</Style>
+						</ListView.ItemContainerStyle>              	
+                        <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="Price">
+										<GridViewColumn.CellTemplate>
+									        <DataTemplate>
+									            <TextBlock Text="{Binding Format_Price}" Foreground="#63AB1D" FontSize="14" FontWeight="Bold"/>
+									        </DataTemplate>
+									    </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Amount">
+										<GridViewColumn.CellTemplate>
+									        <DataTemplate>
+									            <TextBlock Text="{Binding Format_Amount}" FontSize="14" />
+									        </DataTemplate>
+									    </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Total">
+										<GridViewColumn.CellTemplate>
+									        <DataTemplate>
+									            <TextBlock Text="{Binding Format_Total}" FontSize="14" />
+									        </DataTemplate>
+									    </GridViewColumn.CellTemplate>
+									</GridViewColumn>
+                                </GridView>
+                        </ListView.View>
+                </ListView>
+			</Grid>
+		
+			<Border Name="Wallet_Panel_View" BorderBrush="Gray" BorderThickness="1" Margin="3" Grid.Column="0" Grid.Row="3" SnapsToDevicePixels="true">
+				<Border.Background>
+					<LinearGradientBrush  StartPoint="0,1" EndPoint="0,0">
+						<GradientStop Color="White" Offset="0"/>
+						<GradientStop Color="#f6f0fb" Offset=".25"/>
+					</LinearGradientBrush>
+				</Border.Background>
+		        <DockPanel Margin="2">
+	    		    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" DockPanel.Dock="Top">
+	            		<Button Name="Buy_Button" Content="Buy NDEX" Width="120" Margin="5" FontSize="20" Click="Open_Buy">
+							<Button.Style>
+		            			<Style TargetType="Button">
+					                <Style.Triggers>					                	
+										<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+										    <Setter Property="Template">
+										        <Setter.Value>
+										            <ControlTemplate TargetType="{x:Type Button}">
+										                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding Foreground}" BorderThickness="1">
+										                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+										                </Border>
+										        		<ControlTemplate.Triggers>
+										            		<Trigger Property="IsMouseOver" Value="False">
+										        				<Setter Property="Foreground" Value="#999999"/>	
+										        			</Trigger>
+										            		<Trigger Property="IsMouseOver" Value="True">
+										        				<Setter Property="Foreground" Value="#b2b2b2"/>	
+										        			</Trigger>										            	
+										            	</ControlTemplate.Triggers>
+										            </ControlTemplate>
+										        </Setter.Value>
+										    </Setter>
+											<Setter Property="Background" Value="#090B0D"/>														                	
+										</DataTrigger>	            				
+					               </Style.Triggers>								
+								</Style>    			
+	            			</Button.Style>
+	    		    	</Button>
+	            		<Button Name="Sell_Button" Content="Sell NDEX" Width="120"  Margin="5" FontSize="20" Click="Open_Sell">
+							<Button.Style>
+		            			<Style TargetType="Button">
+					                <Style.Triggers>					                	
+										<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+										    <Setter Property="Template">
+										        <Setter.Value>
+										            <ControlTemplate TargetType="{x:Type Button}">
+										                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding Foreground}" BorderThickness="1">
+										                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+										                </Border>
+										        		<ControlTemplate.Triggers>
+										            		<Trigger Property="IsMouseOver" Value="False">
+										        				<Setter Property="Foreground" Value="#999999"/>	
+										        			</Trigger>
+										            		<Trigger Property="IsMouseOver" Value="True">
+										        				<Setter Property="Foreground" Value="#b2b2b2"/>	
+										        			</Trigger>										            	
+										            	</ControlTemplate.Triggers>
+										            </ControlTemplate>
+										        </Setter.Value>
+										    </Setter>
+											<Setter Property="Background" Value="#090B0D"/>														                	
+										</DataTrigger>	            				
+					               </Style.Triggers>								
+								</Style>    			
+	            			</Button.Style>						
+	    		    	</Button>
+	            	</StackPanel>
+	                <DockPanel>
+	            		<StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Center">
+	                		<Button Content="Deposit" Width="100" Margin="5" Click="Open_Deposit" Name="Deposit_Button">
+								<Button.Style>
+			            			<Style TargetType="Button">
+						                <Style.Triggers>					                	
+											<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+											    <Setter Property="Template">
+											        <Setter.Value>
+											            <ControlTemplate TargetType="{x:Type Button}">
+											                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding Foreground}" BorderThickness="1">
+											                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+											                </Border>
+											        		<ControlTemplate.Triggers>
+											            		<Trigger Property="IsMouseOver" Value="False">
+											        				<Setter Property="Foreground" Value="#999999"/>	
+											        			</Trigger>
+											            		<Trigger Property="IsMouseOver" Value="True">
+											        				<Setter Property="Foreground" Value="#b2b2b2"/>	
+											        			</Trigger>										            	
+											            	</ControlTemplate.Triggers>
+											            </ControlTemplate>
+											        </Setter.Value>
+											    </Setter>
+												<Setter Property="Background" Value="#090B0D"/>														                	
+											</DataTrigger>	            				
+						               </Style.Triggers>								
+									</Style>    			
+		            			</Button.Style>	                		
+	            			</Button>
+	                		<Button Content="Withdraw" Width="100"  Margin="5" Click="Open_Withdraw" Name="Withdraw_Button">
+								<Button.Style>
+			            			<Style TargetType="Button">
+						                <Style.Triggers>					                	
+											<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+											    <Setter Property="Template">
+											        <Setter.Value>
+											            <ControlTemplate TargetType="{x:Type Button}">
+											                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding Foreground}" BorderThickness="1">
+											                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+											                </Border>
+											        		<ControlTemplate.Triggers>
+											            		<Trigger Property="IsMouseOver" Value="False">
+											        				<Setter Property="Foreground" Value="#999999"/>	
+											        			</Trigger>
+											            		<Trigger Property="IsMouseOver" Value="True">
+											        				<Setter Property="Foreground" Value="#b2b2b2"/>	
+											        			</Trigger>										            	
+											            	</ControlTemplate.Triggers>
+											            </ControlTemplate>
+											        </Setter.Value>
+											    </Setter>
+												<Setter Property="Background" Value="#090B0D"/>														                	
+											</DataTrigger>	            				
+						               </Style.Triggers>								
+									</Style>    			
+		            			</Button.Style>							
+	            			</Button>
+	                	</StackPanel>
+			          	<ListView Name="Wallet_List" SizeChanged="TradeListView_SizeChanged" ScrollViewer.HorizontalScrollBarVisibility="Disabled" BorderThickness="1.000001">
+							<ListView.ItemContainerStyle>
+							    <Style TargetType="ListViewItem">
+									<Setter Property="Focusable" Value="false"/>
+					                <Style.Triggers>
+										<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+											<Setter Property="Foreground" Value="#999999" />
+											<Setter Property="Background" Value="#090B0D"/>				                	
+										</DataTrigger>	
+					               </Style.Triggers>							
+							    </Style>
+							</ListView.ItemContainerStyle>
+							<ListView.Background>
+								<LinearGradientBrush  StartPoint="0,1" EndPoint="0,0">
+									<GradientStop Color="White" Offset="0"/>
+									<GradientStop Color="#f6f0fb" Offset=".25"/>
+								</LinearGradientBrush>
+							</ListView.Background>
+							<ListView.Resources>
+								<Style TargetType="GridViewColumnHeader">
+									<Style.Triggers>
+										<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="White">
+											<Setter Property="Background" Value="White" />
+											<Setter Property="Foreground" Value="Black" />
+										</DataTrigger>
+										<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+											<Setter Property="Background" Value="#090B0D" />
+											<Setter Property="Foreground" Value="#999999" />
+									        <Setter Property="Template">
+									            <Setter.Value>
+									                <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
+									                    <TextBlock Text="{TemplateBinding Content}" Padding="5" Width="{TemplateBinding Width}" TextAlignment="Center " />
+									                </ControlTemplate>
+									            </Setter.Value>
+									        </Setter>									
+										</DataTrigger>								
+									</Style.Triggers>
+								</Style>
+							    <Style TargetType="{x:Type ScrollBar}" x:Key="ScrollBar_Style">
+							    </Style>
+							</ListView.Resources>	          		
+	                        <ListView.View>
+	                                <GridView>
+	                                        <GridViewColumn Header="Coin">
+												<GridViewColumn.CellTemplate>
+											        <DataTemplate>
+											            <TextBlock Text="{Binding Coin}" FontSize="16" FontWeight="Bold"/>
+											        </DataTemplate>
+											    </GridViewColumn.CellTemplate>
+	                                        </GridViewColumn>
+	                                        <GridViewColumn Header="Amount">
+												<GridViewColumn.CellTemplate>
+											        <DataTemplate>
+											            <TextBlock Text="{Binding Amount}" FontSize="14" />
+											        </DataTemplate>
+											    </GridViewColumn.CellTemplate>
+	                                        </GridViewColumn>
+	                                        <GridViewColumn Header="Status">
+												<GridViewColumn.CellTemplate>
+											        <DataTemplate>
+											            <TextBlock Text="{Binding S_Status}" FontSize="14"/>
+											        </DataTemplate>
+											    </GridViewColumn.CellTemplate>
+											</GridViewColumn>
+	                                </GridView>
+	                        </ListView.View>
+		                </ListView>
+	            	</DockPanel>
+		        </DockPanel>
+			</Border>
+		
+	        <TabControl Name="User_Data_View" Margin="3" Grid.Column="3" Grid.Row="3" TabStripPlacement="Bottom">
+	            <TabItem Header="Recent Market Trades">
+					<TabItem.Style>
+            			<Style TargetType="TabItem">
+			                <Style.Triggers>					                	
+								<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+								    <Setter Property="Template">
+								        <Setter.Value>
+								            <ControlTemplate TargetType="{x:Type TabItem}">
+								                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" Margin="0,0,0,0" BorderThickness="1" >
+								                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" ContentSource="Header" Margin="6,2,6,2" RecognizesAccessKey="True"/>
+								                </Border>
+								        		<ControlTemplate.Triggers>
+								            		<Trigger Property="IsSelected" Value="True">
+								        				<Setter Property="Foreground" Value="#999999"/>
+								        				<Setter Property="BorderBrush" Value="#999999"/>
+								        			</Trigger>
+								            		<Trigger Property="IsSelected" Value="False">
+								        				<Setter Property="Foreground" Value="#999999"/>
+								        				<Setter Property="BorderBrush" Value="#090B0D"/>
+								        			</Trigger>
+								            		<Trigger Property="IsMouseOver" Value="True">									        			
+								        				<Setter Property="Foreground" Value="#b2b2b2"/>
+								        			</Trigger>
+								            	</ControlTemplate.Triggers>
+								            </ControlTemplate>
+								        </Setter.Value>
+								    </Setter>
+									<Setter Property="Background" Value="#090B0D"/>				                	
+								</DataTrigger>		            				
+			               </Style.Triggers>								
+						</Style>    			
+        			</TabItem.Style>	            	
+		          	<ListView Name="Recent_Trade_List" SizeChanged="TradeListView_SizeChanged" ScrollViewer.HorizontalScrollBarVisibility="Disabled" BorderThickness="1.000001">
+						<ListView.ItemContainerStyle>
+						    <Style TargetType="ListViewItem">
+								<Setter Property="HorizontalContentAlignment" Value="Center"/>
+								<Setter Property="Focusable" Value="false"/>
+								<Style.Triggers>
+									<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+										<Setter Property="Foreground" Value="#999999" />
+										<Setter Property="Background" Value="#090B0D"/>				                	
+									</DataTrigger>	
+								</Style.Triggers>							
+						    </Style>
+						</ListView.ItemContainerStyle>
+						<ListView.Background>
+							<LinearGradientBrush  StartPoint="0,1" EndPoint="0,0">
+								<GradientStop Color="White" Offset="0"/>
+								<GradientStop Color="#f6f0fb" Offset=".25"/>
+							</LinearGradientBrush>
+						</ListView.Background>
+						<ListView.Resources>
+							<Style TargetType="GridViewColumnHeader">
+								<Style.Triggers>
+									<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="White">
+										<Setter Property="Background" Value="White" />
+										<Setter Property="Foreground" Value="Black" />
+									</DataTrigger>
+									<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+										<Setter Property="Background" Value="#090B0D" />
+										<Setter Property="Foreground" Value="#999999" />
+								        <Setter Property="Template">
+								            <Setter.Value>
+								                <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
+								                    <TextBlock Text="{TemplateBinding Content}" Padding="5" Width="{TemplateBinding Width}" TextAlignment="Center " />
+								                </ControlTemplate>
+								            </Setter.Value>
+								        </Setter>									
+									</DataTrigger>								
+								</Style.Triggers>
+							</Style>
+						</ListView.Resources>		          		
+                        <ListView.View>
+                                <GridView>
+                                        <GridViewColumn Header="Zulu Time" DisplayMemberBinding="{Binding Format_Time}" />
+                                        <GridViewColumn Header="Type" DisplayMemberBinding="{Binding Format_Type}"	/>
+                                		<GridViewColumn Header="Price" DisplayMemberBinding="{Binding Format_Price}" />
+                        				<GridViewColumn Header="Amount" DisplayMemberBinding="{Binding Format_Amount}" />
+                                </GridView>
+                        </ListView.View>
+	                </ListView>
+	            </TabItem>
+				<TabItem Header="My Trade History">
+					<TabItem.Style>
+            			<Style TargetType="TabItem">
+			                <Style.Triggers>					                	
+								<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+								    <Setter Property="Template">
+								        <Setter.Value>
+								            <ControlTemplate TargetType="{x:Type TabItem}">
+								                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" Margin="0,0,0,0" BorderThickness="1" >
+								                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" ContentSource="Header" Margin="6,2,6,2" RecognizesAccessKey="True"/>
+								                </Border>
+								        		<ControlTemplate.Triggers>
+								            		<Trigger Property="IsSelected" Value="True">
+								        				<Setter Property="Foreground" Value="#999999"/>
+								        				<Setter Property="BorderBrush" Value="#999999"/>
+								        			</Trigger>
+								            		<Trigger Property="IsSelected" Value="False">
+								        				<Setter Property="Foreground" Value="#999999"/>
+								        				<Setter Property="BorderBrush" Value="#090B0D"/>
+								        			</Trigger>
+								            		<Trigger Property="IsMouseOver" Value="True">									        			
+								        				<Setter Property="Foreground" Value="#b2b2b2"/>
+								        			</Trigger>
+								            	</ControlTemplate.Triggers>
+								            </ControlTemplate>
+								        </Setter.Value>
+								    </Setter>
+									<Setter Property="Background" Value="#090B0D"/>				                	
+								</DataTrigger>		            				
+			               </Style.Triggers>								
+						</Style>    			
+        			</TabItem.Style>			          	
+					<ListView Name="Trade_History_List" SizeChanged="TradeListView_SizeChanged" ScrollViewer.HorizontalScrollBarVisibility="Disabled" BorderThickness="1.000001">
+						<ListView.ItemContainerStyle>
+						    <Style TargetType="ListViewItem">
+						        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+								<Setter Property="Focusable" Value="false"/>
+								<Style.Triggers>
+									<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+										<Setter Property="Foreground" Value="#999999" />
+										<Setter Property="Background" Value="#090B0D"/>				                	
+									</DataTrigger>	
+								</Style.Triggers>								
+						    </Style>
+						</ListView.ItemContainerStyle>
+						<ListView.Background>
+							<LinearGradientBrush  StartPoint="0,1" EndPoint="0,0">
+								<GradientStop Color="White" Offset="0"/>
+								<GradientStop Color="#f6f0fb" Offset=".25"/>
+							</LinearGradientBrush>
+						</ListView.Background>
+						<ListView.Resources>
+							<Style TargetType="GridViewColumnHeader">
+								<Style.Triggers>
+									<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="White">
+										<Setter Property="Background" Value="White" />
+										<Setter Property="Foreground" Value="Black" />
+									</DataTrigger>
+									<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+										<Setter Property="Background" Value="#090B0D" />
+										<Setter Property="Foreground" Value="#999999" />
+								        <Setter Property="Template">
+								            <Setter.Value>
+								                <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
+								                    <TextBlock Text="{TemplateBinding Content}" Padding="5" Width="{TemplateBinding Width}" TextAlignment="Center " />
+								                </ControlTemplate>
+								            </Setter.Value>
+								        </Setter>									
+									</DataTrigger>								
+								</Style.Triggers>
+							</Style>
+						</ListView.Resources>						
+                        <ListView.View>
+                                <GridView>
+                                        <GridViewColumn Header="Date" DisplayMemberBinding="{Binding Date}" />
+                                		<GridViewColumn Header="Pair" DisplayMemberBinding="{Binding Pair}"	/>
+                                        <GridViewColumn Header="Type" DisplayMemberBinding="{Binding Type}"	/>
+                                		<GridViewColumn Header="Price" DisplayMemberBinding="{Binding Price}" />
+                        				<GridViewColumn Header="Amount" DisplayMemberBinding="{Binding Amount}" />
+                                </GridView>
+                        </ListView.View>
+	                </ListView>	        	
+				</TabItem>
+				<TabItem Header="My Open Orders">
+					<TabItem.Style>
+            			<Style TargetType="TabItem">
+			                <Style.Triggers>					                	
+								<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+								    <Setter Property="Template">
+								        <Setter.Value>
+								            <ControlTemplate TargetType="{x:Type TabItem}">
+								                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" Margin="0,0,0,0" BorderThickness="1" >
+								                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" ContentSource="Header" Margin="6,2,6,2" RecognizesAccessKey="True"/>
+								                </Border>
+								        		<ControlTemplate.Triggers>
+								            		<Trigger Property="IsSelected" Value="True">
+								        				<Setter Property="Foreground" Value="#999999"/>
+								        				<Setter Property="BorderBrush" Value="#999999"/>
+								        			</Trigger>
+								            		<Trigger Property="IsSelected" Value="False">
+								        				<Setter Property="Foreground" Value="#999999"/>
+								        				<Setter Property="BorderBrush" Value="#090B0D"/>
+								        			</Trigger>
+								            		<Trigger Property="IsMouseOver" Value="True">									        			
+								        				<Setter Property="Foreground" Value="#b2b2b2"/>
+								        			</Trigger>
+								            	</ControlTemplate.Triggers>
+								            </ControlTemplate>
+								        </Setter.Value>
+								    </Setter>
+									<Setter Property="Background" Value="#090B0D"/>				                	
+								</DataTrigger>		            				
+			               </Style.Triggers>								
+						</Style>    			
+        			</TabItem.Style>
+					<ListView Name="Open_Orders_List" SizeChanged="TradeListView_SizeChanged" ScrollViewer.HorizontalScrollBarVisibility="Disabled" BorderThickness="1.000001">
+						<ListView.ItemContainerStyle>
+						    <Style TargetType="ListViewItem">
+						        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+								<Setter Property="Focusable" Value="false"/>
+								<Style.Triggers>
+									<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+										<Setter Property="Foreground" Value="#999999" />
+										<Setter Property="Background" Value="#090B0D"/>				                	
+									</DataTrigger>	
+								</Style.Triggers>							
+						    </Style>
+						</ListView.ItemContainerStyle>
+						<ListView.Background>
+							<LinearGradientBrush  StartPoint="0,1" EndPoint="0,0">
+								<GradientStop Color="White" Offset="0"/>
+								<GradientStop Color="#f6f0fb" Offset=".25"/>
+							</LinearGradientBrush>
+						</ListView.Background>
+						<ListView.Resources>
+							<Style TargetType="GridViewColumnHeader">
+								<Style.Triggers>
+									<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="White">
+										<Setter Property="Background" Value="White" />
+										<Setter Property="Foreground" Value="Black" />
+									</DataTrigger>
+									<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+										<Setter Property="Background" Value="#090B0D" />
+										<Setter Property="Foreground" Value="#999999" />
+								        <Setter Property="Template">
+								            <Setter.Value>
+								                <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
+								                    <TextBlock Text="{TemplateBinding Content}" Padding="5" Width="{TemplateBinding Width}" TextAlignment="Center " />
+								                </ControlTemplate>
+								            </Setter.Value>
+								        </Setter>									
+									</DataTrigger>								
+								</Style.Triggers>
+							</Style>
+						</ListView.Resources>						
+                        <ListView.View>
+                                <GridView>
+                                		<GridViewColumn Header="Pair" DisplayMemberBinding="{Binding Format_Market}" />
+                                        <GridViewColumn Header="Type" DisplayMemberBinding="{Binding Format_Type}"	/>
+                                		<GridViewColumn Header="Price" DisplayMemberBinding="{Binding Format_Price}" />
+                        				<GridViewColumn Header="Amount" DisplayMemberBinding="{Binding Format_Original_Amount}" />
+                        				<GridViewColumn Header="% Filled">
+											<GridViewColumn.CellTemplate>
+										        <DataTemplate>
+										            <TextBlock Text="{Binding Format_Filled}" FontSize="14" FontWeight="Bold" />
+										        </DataTemplate>
+										    </GridViewColumn.CellTemplate>
+                    					</GridViewColumn>
+                        				<GridViewColumn Header="Action">
+											<GridViewColumn.CellTemplate>
+										        <DataTemplate>
+										        	<Button Content="Cancel" Click="Request_Cancel_Order" Visibility="{Binding Cancel_Visible}" FontSize="14" Foreground="Red" Background="Transparent" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" />													
+										        </DataTemplate>
+										    </GridViewColumn.CellTemplate>
+										</GridViewColumn>
+                                </GridView>
+                        </ListView.View>
+	                </ListView>	  	        	
+				</TabItem>
+				<TabItem Header="My Critical Node Fees" Name="CN_Tab" Visibility="Collapsed">
+					<TabItem.Style>
+            			<Style TargetType="TabItem">
+			                <Style.Triggers>					                	
+								<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+								    <Setter Property="Template">
+								        <Setter.Value>
+								            <ControlTemplate TargetType="{x:Type TabItem}">
+								                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" Margin="0,0,0,0" BorderThickness="1" >
+								                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" ContentSource="Header" Margin="6,2,6,2" RecognizesAccessKey="True"/>
+								                </Border>
+								        		<ControlTemplate.Triggers>
+								            		<Trigger Property="IsSelected" Value="True">
+								        				<Setter Property="Foreground" Value="#999999"/>
+								        				<Setter Property="BorderBrush" Value="#999999"/>
+								        			</Trigger>
+								            		<Trigger Property="IsSelected" Value="False">
+								        				<Setter Property="Foreground" Value="#999999"/>
+								        				<Setter Property="BorderBrush" Value="#090B0D"/>
+								        			</Trigger>
+								            		<Trigger Property="IsMouseOver" Value="True">									        			
+								        				<Setter Property="Foreground" Value="#b2b2b2"/>
+								        			</Trigger>
+								            	</ControlTemplate.Triggers>
+								            </ControlTemplate>
+								        </Setter.Value>
+								    </Setter>
+									<Setter Property="Background" Value="#090B0D"/>				                	
+								</DataTrigger>		            				
+			               </Style.Triggers>								
+						</Style>    			
+        			</TabItem.Style>					
+		          	<ListView Name="CN_Tx_List" SizeChanged="TradeListView_SizeChanged" ScrollViewer.HorizontalScrollBarVisibility="Disabled" BorderThickness="1.000001">
+						<ListView.ItemContainerStyle>
+						    <Style TargetType="ListViewItem">
+						        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+								<Setter Property="Focusable" Value="false"/>
+								<Style.Triggers>
+									<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+										<Setter Property="Foreground" Value="#999999" />
+										<Setter Property="Background" Value="#090B0D"/>				                	
+									</DataTrigger>	
+								</Style.Triggers>							
+						    </Style>
+						</ListView.ItemContainerStyle>
+						<ListView.Background>
+							<LinearGradientBrush  StartPoint="0,1" EndPoint="0,0">
+								<GradientStop Color="White" Offset="0"/>
+								<GradientStop Color="#f6f0fb" Offset=".25"/>
+							</LinearGradientBrush>
+						</ListView.Background>
+						<ListView.Resources>
+							<Style TargetType="GridViewColumnHeader">
+								<Style.Triggers>
+									<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="White">
+										<Setter Property="Background" Value="White" />
+										<Setter Property="Foreground" Value="Black" />
+									</DataTrigger>
+									<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+										<Setter Property="Background" Value="#090B0D" />
+										<Setter Property="Foreground" Value="#999999" />
+								        <Setter Property="Template">
+								            <Setter.Value>
+								                <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
+								                    <TextBlock Text="{TemplateBinding Content}" Padding="5" Width="{TemplateBinding Width}" TextAlignment="Center " />
+								                </ControlTemplate>
+								            </Setter.Value>
+								        </Setter>									
+									</DataTrigger>								
+								</Style.Triggers>
+							</Style>
+						</ListView.Resources>		          		
+                        <ListView.View>
+                                <GridView>
+                                        <GridViewColumn Header="Date" DisplayMemberBinding="{Binding Date}" />
+                                		<GridViewColumn Header="Pair" DisplayMemberBinding="{Binding Pair}"	/>
+                                        <GridViewColumn Header="Fee Earned" DisplayMemberBinding="{Binding Fee}"/>
+                                </GridView>
+                        </ListView.View>
+	                </ListView>	        	
+				</TabItem>
+	        </TabControl>
+		
+			<Border Name="Chart_Canvas_Border_View" Background="#293f58" Grid.Column="3" Grid.Row="0" Margin="3" Padding="2">
+				<Canvas Name="Chart_Canvas" Background="#0a182c" SizeChanged="Chart_SizeChanged" MouseMove="Chart_MouseMove">
+					<Button Panel.ZIndex="10" Name="Chart_Time_Toggle" Click="Change_Chart_Timeline" Content="24 Hour" Width="100" Canvas.Right="2" Canvas.Top="2" Background="#0a182c" Foreground="White">
+						<Button.Style>
+	            			<Style TargetType="Button">
+				                <Style.Triggers>					                	
+									<DataTrigger Binding="{Binding Background, ElementName=Main_Grid_View}" Value="Black">
+									    <Setter Property="Template">
+									        <Setter.Value>
+									            <ControlTemplate TargetType="{x:Type Button}">
+									                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding Foreground}" BorderThickness="1">
+									                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+									                </Border>
+									        		<ControlTemplate.Triggers>
+									            		<Trigger Property="IsMouseOver" Value="False">
+									        				<Setter Property="Foreground" Value="#999999"/>	
+									        			</Trigger>
+									            		<Trigger Property="IsMouseOver" Value="True">
+									        				<Setter Property="Foreground" Value="#b2b2b2"/>	
+									        			</Trigger>										            	
+									            	</ControlTemplate.Triggers>
+									            </ControlTemplate>
+									        </Setter.Value>
+									    </Setter>
+										<Setter Property="Background" Value="#090B0D"/>														                	
+									</DataTrigger>	            				
+				               </Style.Triggers>								
+							</Style>    			
+            			</Button.Style>		
+					</Button>
+					<Label Panel.ZIndex="10" Name="Chart_Last_Price" Content="Last Price:"  FontWeight="Bold" Foreground="White" Canvas.Left="2" Canvas.Top="2" />
+					<Label Panel.ZIndex="10" Name="Chart_Mouse_Price" Content="0000-00-00 00:00|00.00000" Visibility="Hidden" Foreground="White" Canvas.Left="2" Canvas.Top="2" />
+				</Canvas>
+			</Border>
+
+		</Grid>
+	</DockPanel>
+</Window>

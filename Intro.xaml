@@ -1,0 +1,17 @@
+﻿<Window x:Class="NebliDex.Intro"
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	Title="NebliDex: A Decentralized Neblio Exchange" Height="175" Width="380" ResizeMode="NoResize" Loaded="App_Initiate" Icon="logo.ico">
+	<DockPanel LastChildFill="True">
+		<StatusBar DockPanel.Dock="Bottom">
+		    <StatusBarItem HorizontalAlignment="Center">
+		        <Label Name="Intro_Status" Content="Initializing..." HorizontalContentAlignment="Center"/>
+		    </StatusBarItem>			
+		</StatusBar>
+		<Image Stretch="UniformToFill">
+		    <Image.Source>
+		        <BitmapImage DecodePixelWidth="380" UriSource="/logo.png" />
+		    </Image.Source>
+		</Image>
+	</DockPanel>
+</Window>

@@ -1,0 +1,40 @@
+﻿<Window x:Class="NebliDex.MatchOrder"
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	Title="Match Order" Height="355" Width="400" WindowStyle="ToolWindow" ResizeMode="NoResize">
+	<StackPanel Background="#f1eded">
+		<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0 5">
+			<Label Name="Header" Content="Sell Order Details" FontSize="20" FontWeight="Bold" />
+		</StackPanel>
+		<DockPanel>
+			<Label Name="Order_Type" Content="Available:" FontSize="14" Margin="15 0"/>
+			<Label Name="Order_Amount" Content="40 NEBL" HorizontalAlignment="Right" FontSize="14" FontWeight="Bold" Margin="0 0 15 0"/>
+		</DockPanel>
+		<DockPanel>
+			<Label Name="Order_Min_Header" Content="Minimum:" FontSize="14" Margin="15 0"/>
+			<Label Name="Order_Min_Amount" Content="10 NEBL" HorizontalAlignment="Right" FontSize="14" FontWeight="Bold" Margin="0 0 15 0"/>
+		</DockPanel>
+		<DockPanel>
+			<Label Content="Price:" FontSize="14" Margin="15 0"/>
+			<Label Name="Price" Content="0.000456 BTC" HorizontalAlignment="Right" FontSize="14" FontWeight="Bold" Margin="0 0 15 0"/>
+		</DockPanel>
+		<Border Height="0.5" Background="DarkGray" Width="350" Margin="0 10 0 3" />
+		<DockPanel Margin="0 5">
+			<Label Name="My_Amount_Header" Content="Amount (NEBL):" FontSize="14" Margin="15 0"/>
+			<TextBox Name="My_Amount" HorizontalAlignment="Right" KeyUp="Amount_KeyUp" Width="150" Margin="0 0 15 0" FontSize="14" MinHeight="20" Padding="4" HorizontalContentAlignment="Right" />
+		</DockPanel>
+		<Border Height="0.5" Background="DarkGray" Width="350" Margin="0 3 0 3" />
+		<DockPanel Margin="0 5">
+			<Label Name="Total_Cost_Header" Content="Total Cost (BTC):" FontSize="14" Margin="15 0"/>
+			<TextBox Name="Total_Amount" KeyUp="Total_KeyUp" HorizontalAlignment="Right" Width="150" Margin="0 0 15 0" FontSize="14" Padding="4" MinHeight="20" HorizontalContentAlignment="Right" />
+		</DockPanel>
+		<DockPanel>
+			<Label Content="My Balance:" FontSize="14" Margin="15 0"/>
+			<Label Name="My_Balance" Content="40 BTC" HorizontalAlignment="Right" FontSize="14" FontWeight="Bold" Margin="0 0 15 0"/>
+		</DockPanel>
+		<Border Height="0.5" Background="DarkGray" Width="350" Margin="0 3 0 3" />
+		<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
+			<Button Name="Match_Button" Content="Match" MinWidth="120" FontSize="18" Click="Match_Order" />
+		</StackPanel>
+	</StackPanel>
+</Window>

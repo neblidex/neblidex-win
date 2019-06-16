@@ -1,0 +1,32 @@
+﻿<Window x:Class="NebliDex.Withdraw"
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	Title="Withdraw From Wallet" Height="330" Width="370" WindowStyle="ToolWindow" ResizeMode="NoResize">
+	<StackPanel Background="#f1eded">
+		<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0 5">
+			<Label Content="Withdraw Funds" FontSize="20" FontWeight="Bold" />
+		</StackPanel>
+		<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0 5">
+			<Label Content="Select Coin: " FontSize="16" />
+			<ComboBox Name="Coin_Box" HorizontalAlignment="Left" Margin="3 0" MaxWidth="100" FontSize="16" SelectionChanged="Change_Coin">
+			</ComboBox>
+		</StackPanel>
+		<Border Height="0.5" Background="DarkGray" MaxWidth="340" Margin="0 10 0 3" />
+		<DockPanel>
+			<Label Content="Balance:" FontSize="16" Margin="15 0"/>
+			<Label Name="Balance_Amount" Content="40 NEBL" HorizontalAlignment="Right" FontSize="16" FontWeight="Bold" Margin="0 0 15 0"/>
+		</DockPanel>
+		<DockPanel>
+			<Label Content="Amount:" FontSize="16" Margin="15 0"/>
+			<TextBox Name="Amount_Input" HorizontalAlignment="Right" Width="150" Margin="0 0 15 0" Padding="4" MinHeight="20" FontSize="20" HorizontalContentAlignment="Right" />
+		</DockPanel>
+		<Border Height="0.5" Background="DarkGray" MaxWidth="340" Margin="0 10 0 3" />
+		<StackPanel>
+			<Label Content="Destination Address: " HorizontalContentAlignment="Center" FontSize="16"/>
+			<TextBox Name="Destination" Width="335" Margin="3" FontSize="14"/>
+		</StackPanel>
+		<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
+			<Button Name="Withdraw_Button" Content="Withdraw" Width="100" FontSize="18" Click="Confirm_Withdraw" />
+		</StackPanel>
+	</StackPanel>
+</Window>
