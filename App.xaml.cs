@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Data;
@@ -32,9 +32,9 @@ namespace NebliDex
 		public static int default_ui_look = 0;
 		
 		//Mainnet version
-		public static int protocol_version = 5; //My protocol version
-		public static int protocol_min_version = 5; //Minimum accepting protocol version
-		public static string version_text = "v5.0.0";
+		public static int protocol_version = 6; //My protocol version
+		public static int protocol_min_version = 6; //Minimum accepting protocol version
+		public static string version_text = "v6.0.0";
 		public static bool run_headless = false; //If true, this software is ran in critical node mode without GUI on startup
 		public static int sqldatabase_version = 3;
 		
