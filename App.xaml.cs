@@ -2630,55 +2630,6 @@ namespace NebliDex
 			return "";
 		}
 		
-		public static ExtKey CreateShareablePrivateKey()
-		{
-			//This function will create a sharable private key used for the custodial funds
-			ExtKey priv_key=null;
-			lock(transactionLock){
-				try {
-					if(File.Exists(App_Path+"/data/validator_wallet.dat") == false){
-						using (System.IO.StreamWriter file_out = 
-				            new System.IO.StreamWriter(@App_Path+"/data/validator_wallet.dat", false))
-				        {
-							string masterkey = GenerateMasterKey();
-							file_out.WriteLine(masterkey);
-							file_out.WriteLine("0"); //Only 1 account						
-						}
-					}
-					
-					//Now open the file, read the master key, and add a line
-			        using (System.IO.StreamReader file_in = 
-			            new System.IO.StreamReader(@App_Path+"/data/validator_wallet.dat", false))
-			        {
-						using (System.IO.StreamWriter file_out = 
-				            new System.IO.StreamWriter(@App_Path+"/data/validator_wallet_new.dat", false))
-				        {
-							string master = file_in.ReadLine();
-							int amount = Convert.ToInt32(file_in.ReadLine());
-							
-							if(amount >= int.MaxValue-1){
-								//Too many values here so create a new master key and start over. Unlikely
-								master = GenerateMasterKey();
-								amount = 0;
-							}
-							
-							file_out.WriteLine(master);
-							file_out.WriteLine(amount+1);
-							priv_key = GeneratePrivateKey(master,amount+1);
-						}
-					}
-					
-					if(File.Exists(App_Path+"/data/validator_wallet_new.dat") != false){
-						File.Delete(App_Path+"/data/validator_wallet.dat");
-						File.Move(App_Path+"/data/validator_wallet_new.dat",App_Path+"/data/validator_wallet.dat");
-					}					
-				} catch (Exception) {
-					NebliDexNetLog("Failed to write new validator wallet address");
-				}
-			}
-			return priv_key;
-		}
-
 		//Windows function to prevent screen from sleeping
 		internal static class NativeMethods
 		{
