@@ -270,7 +270,7 @@ namespace NebliDex
 			statement_reader.Close();
 			statement.Dispose();
 			
-			//Now load the Candle information for the visible chart (NEBL/BTC is default market & 24 HR is default timeline) from SQLite DB (added during sync period)
+			//Now load the Candle information for the visible chart (NDEX/NEBL is default market & 24 HR is default timeline) from SQLite DB (added during sync period)
 			//The server will send how many seconds left on the most recent candle (for both times), before moving forward
 			int backtime = App.UTCTime() - 60*60*25;
 			myquery = "Select highprice, lowprice, open, close From CANDLESTICKS24H Where market = @mark And utctime > @time Order By utctime ASC"; //Show results from oldest to most recent
@@ -341,23 +341,41 @@ namespace NebliDex
 		public void UpdateBlockrates()
 		{
 			//Make sure all the Dex connections exists
-			bool[] dex_connected = new bool[3];
-			dex_connected[0] = false;
-			dex_connected[1] = false;
-			dex_connected[2] = false;
+			bool not_connected = false;
+			//contype 1 now represents all electrum connections but different cointypes
 			lock(App.DexConnectionList){
-				for(int i = 0;i < App.DexConnectionList.Count;i++){
-					if(App.DexConnectionList[i].open == true && App.DexConnectionList[i].contype < 4 && App.DexConnectionList[i].contype > 0){
-						dex_connected[App.DexConnectionList[i].contype-1] = true;
+				bool connnection_exist;
+				for(int cit = 1;cit < App.total_cointypes;cit++){
+					//Go through all the blockchain types and make sure an electrum connection exists for it, skip Neblio blockchain as it doesn't use electrum
+					if(cit == 6){continue;} //Etheruem doesn't use dexconnection
+					connnection_exist = false;
+					for(int i = 0;i < App.DexConnectionList.Count;i++){
+						if(App.DexConnectionList[i].open == true && App.DexConnectionList[i].contype == 1 && App.DexConnectionList[i].blockchain_type == cit){
+							connnection_exist = true;
+							break;
+						}
+					}
+					if(connnection_exist == false){
+						not_connected = true;
+						break;
+					}
+				}
+				//Now detect if client is connected to a CN node
+				if(App.critical_node == false){
+					connnection_exist = false;
+					for(int i = 0;i < App.DexConnectionList.Count;i++){
+						if(App.DexConnectionList[i].open == true && App.DexConnectionList[i].contype == 3){
+							connnection_exist = true;
+							break;
+						}
+					}
+					if(connnection_exist == false){
+						not_connected = true;
 					}
 				}
 			}
 			
-			if(App.critical_node == true){
-				dex_connected[2] = true; //Critical node
-			}
-			
-			if(dex_connected[0] == true && dex_connected[1] == true && dex_connected[2] == true && App.ntp1downcounter < 2){
+			if(not_connected == false && App.ntp1downcounter < 2){
 				//Update the block rate status bar based on the market
 				Fee_Status.Content = "Current Blockchain Fees:";
 				if(App.using_blockhelper == true){
@@ -365,15 +383,27 @@ namespace NebliDex
 				}
 				Fee_Status.Foreground = System.Windows.Media.Brushes.Black;
 				CN_Fee.Content = "CN Fee: "+App.ndex_fee;
-				NEBL_Fee.Content = "NEBL Fee: "+String.Format(CultureInfo.InvariantCulture,"{0:0.########}",Math.Round(App.blockchain_fee[0],8))+"/kb";
-	
+				int trade_wallet_blockchaintype = App.GetWalletBlockchainType(App.MarketList[App.exchange_market].trade_wallet);
+				int base_wallet_blockchaintype = App.GetWalletBlockchainType(App.MarketList[App.exchange_market].base_wallet);
+				
 				//Update Status Bar Fees
-				if(App.MarketList[App.exchange_market].base_wallet != 0){
-					Base_Pair_Separator.Visibility = Visibility.Visible;
-					Base_Pair_Fee.Content = App.MarketList[App.exchange_market].base_symbol+" Fee: "+String.Format(CultureInfo.InvariantCulture,"{0:0.########}",Math.Round(App.blockchain_fee[App.MarketList[App.exchange_market].base_wallet],8))+"/kb";
+				if(trade_wallet_blockchaintype != 0){
+					if(trade_wallet_blockchaintype == 6){
+						NEBL_Fee.Content = App.MarketList[App.exchange_market].trade_symbol+" Fee: "+String.Format(CultureInfo.InvariantCulture,"{0:0.##}",Math.Round(App.blockchain_fee[trade_wallet_blockchaintype],2))+" Gwei";
+					}else{
+						NEBL_Fee.Content = App.MarketList[App.exchange_market].trade_symbol+" Fee: "+String.Format(CultureInfo.InvariantCulture,"{0:0.########}",Math.Round(App.blockchain_fee[trade_wallet_blockchaintype],8))+"/kb";
+					}
 				}else{
+					NEBL_Fee.Content = "NEBL Fee: "+String.Format(CultureInfo.InvariantCulture,"{0:0.########}",Math.Round(App.blockchain_fee[trade_wallet_blockchaintype],8))+"/kb";
+				}
+				if(trade_wallet_blockchaintype != base_wallet_blockchaintype){
+					//Show both the trade and base fees
+					Base_Pair_Separator.Visibility = Visibility.Visible;
+					Base_Pair_Fee.Content = App.MarketList[App.exchange_market].base_symbol+" Fee: "+String.Format(CultureInfo.InvariantCulture,"{0:0.########}",Math.Round(App.blockchain_fee[base_wallet_blockchaintype],8))+"/kb";
+				}else{
+					//Only show the trade fee as they use the same blockchaintype
 					Base_Pair_Fee.Content = "";
-					Base_Pair_Separator.Visibility = Visibility.Collapsed;			
+					Base_Pair_Separator.Visibility = Visibility.Collapsed;	
 				}
 				
 				if(App.critical_node == true){
@@ -398,10 +428,28 @@ namespace NebliDex
 				if(App.MarketList[i].active == false){
 					continue;
 				}
-				Market_Box.Items.Add(App.MarketList[i].trade_symbol+"/"+App.MarketList[i].base_symbol);
+				string format_market = App.MarketList[i].format_market;
+				//We are going to alphabetically sort the marketlist
+				bool not_found = true;
+				int pos = 0;
+				for(int i2 = 0;i2 < Market_Box.Items.Count;i2++){
+					string item_detail = (string)Market_Box.Items[i2];
+					int compare = String.Compare(format_market,item_detail,true);
+					if(compare < 0){
+						not_found = false;
+						//Format Market precedes item_detail, add it in front
+						Market_Box.Items.Insert(i2,App.MarketList[i].format_market);
+						pos = i2;
+						break;
+					}
+				}
+				if(not_found == true){
+					Market_Box.Items.Add(App.MarketList[i].format_market);
+					pos = Market_Box.Items.Count-1;
+				}
 				if(i == App.exchange_market){
 					//Select this by default
-					Market_Box.SelectedIndex = Market_Box.Items.Count-1;
+					Market_Box.SelectedIndex = pos;
 				}
 			}			
 		}
@@ -1445,20 +1493,7 @@ namespace NebliDex
 		}
 		
 		private void Open_Deposit(object sender, RoutedEventArgs e)
-		{
-			/*
-			App.CheckElectrumServerSync();
-			return;
-			
-			
-			for(int i=0;i < App.DexConnectionList.Count;i++){
-				if(App.DexConnectionList[i].contype == 2){
-					App.SendElectrumAction(App.DexConnectionList[i],10,"");
-				}
-			}
-			return;
-			*/
-			
+		{			
 			Deposit dep = new Deposit();
 		    dep.ShowDialog();
 		}

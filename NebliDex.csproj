@@ -67,7 +67,7 @@
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
     <Reference Include="System.Data.SQLite">
-      <HintPath>System.Data.SQLite.dll</HintPath>
+      <HintPath>..\..\..\Downloads\sqlite-netFx45-static-binary-bundle-Win32-2012-1.0.107.0\System.Data.SQLite.dll</HintPath>
     </Reference>
     <Reference Include="System.Drawing" />
     <Reference Include="System.Net">
@@ -95,6 +95,7 @@
       <SubType>Code</SubType>
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
+    <Compile Include="BitcoinCashAddr.cs" />
     <Compile Include="CNNet.cs" />
     <Compile Include="Deposit.xaml.cs">
       <DependentUpon>Deposit.xaml</DependentUpon>
@@ -102,6 +103,7 @@
     </Compile>
     <Compile Include="Blockchain.cs" />
     <Compile Include="Encryption.cs" />
+    <Compile Include="Ethereum.cs" />
     <Compile Include="Intro.xaml.cs">
       <DependentUpon>Intro.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -458,6 +460,69 @@
     <Compile Include="NBitcoin\Utils\ThreadSafeCollection.cs" />
     <Compile Include="NBitcoin\ValidationState.cs" />
     <Compile Include="Net.cs" />
+    <Compile Include="Nethereum\Hex\HexConvertors\Extensions\HexBigIntegerConvertorExtensions.cs" />
+    <Compile Include="Nethereum\Hex\HexConvertors\Extensions\HexByteConvertorExtensions.cs" />
+    <Compile Include="Nethereum\Hex\HexConvertors\Extensions\HexStringUTF8ConvertorExtensions.cs" />
+    <Compile Include="Nethereum\Hex\HexConvertors\HexBigIntegerBigEndianConvertor.cs" />
+    <Compile Include="Nethereum\Hex\HexConvertors\HexUTF8StringConvertor.cs" />
+    <Compile Include="Nethereum\Hex\HexConvertors\IHexConvertor.cs" />
+    <Compile Include="Nethereum\Hex\HexTypes\HexBigInteger.cs" />
+    <Compile Include="Nethereum\Hex\HexTypes\HexType.cs" />
+    <Compile Include="Nethereum\Hex\HexTypes\HexTypeFactory.cs" />
+    <Compile Include="Nethereum\Hex\HexTypes\HexTypeJsonConverter.cs" />
+    <Compile Include="Nethereum\Hex\HexTypes\HexUTF8String.cs" />
+    <Compile Include="Nethereum\Model\Account.cs" />
+    <Compile Include="Nethereum\Model\AccountEncoder.cs" />
+    <Compile Include="Nethereum\Model\BlockHeader.cs" />
+    <Compile Include="Nethereum\Model\BlockHeaderEncoder.cs" />
+    <Compile Include="Nethereum\Model\DefaultValues.cs" />
+    <Compile Include="Nethereum\Model\Log.cs" />
+    <Compile Include="Nethereum\Model\LogBloomFilter.cs" />
+    <Compile Include="Nethereum\RLP\ConvertorForRLPEncodingExtensions.cs" />
+    <Compile Include="Nethereum\RLP\IRLPElement.cs" />
+    <Compile Include="Nethereum\RLP\RLP.cs" />
+    <Compile Include="Nethereum\RLP\RLPCollection.cs" />
+    <Compile Include="Nethereum\RLP\RLPItem.cs" />
+    <Compile Include="Nethereum\RLP\RLPStringFormatter.cs" />
+    <Compile Include="Nethereum\Signer\Chain.cs" />
+    <Compile Include="Nethereum\Signer\CliqueBlockHeaderRecovery.cs" />
+    <Compile Include="Nethereum\Signer\Crypto\DeterministicDSAExtensions.cs" />
+    <Compile Include="Nethereum\Signer\Crypto\DeterministicECDSA.cs" />
+    <Compile Include="Nethereum\Signer\Crypto\ECDSASignature.cs" />
+    <Compile Include="Nethereum\Signer\Crypto\ECKey.cs" />
+    <Compile Include="Nethereum\Signer\ECDSASignatureFactory.cs" />
+    <Compile Include="Nethereum\Signer\EthECDSASignature.cs" />
+    <Compile Include="Nethereum\Signer\EthECDSASignatureFactory.cs" />
+    <Compile Include="Nethereum\Signer\EthECKey.cs" />
+    <Compile Include="Nethereum\Signer\EthECKeyExternalSigner.cs" />
+    <Compile Include="Nethereum\Signer\EthereumMessageSigner.cs" />
+    <Compile Include="Nethereum\Signer\IEthExternalSigner.cs" />
+    <Compile Include="Nethereum\Signer\IEthExternalSignerBase.cs" />
+    <Compile Include="Nethereum\Signer\MessageSigner.cs" />
+    <Compile Include="Nethereum\Signer\RLPDecoder.cs" />
+    <Compile Include="Nethereum\Signer\RLPEncoder.cs" />
+    <Compile Include="Nethereum\Signer\RLPSigner.cs" />
+    <Compile Include="Nethereum\Signer\SignedData.cs" />
+    <Compile Include="Nethereum\Signer\SignedTransactionBase.cs" />
+    <Compile Include="Nethereum\Signer\Transaction.cs" />
+    <Compile Include="Nethereum\Signer\TransactionChainId.cs" />
+    <Compile Include="Nethereum\Signer\TransactionFactory.cs" />
+    <Compile Include="Nethereum\Signer\TransactionSigner.cs" />
+    <Compile Include="Nethereum\Util\AddressUtil.cs" />
+    <Compile Include="Nethereum\Util\ByteUtil.cs" />
+    <Compile Include="Nethereum\Util\Keccak\ArrayExtensions.cs" />
+    <Compile Include="Nethereum\Util\Keccak\Converters.cs" />
+    <Compile Include="Nethereum\Util\Keccak\Groestl.cs" />
+    <Compile Include="Nethereum\Util\Keccak\Hash.cs" />
+    <Compile Include="Nethereum\Util\Keccak\HashBuffer.cs" />
+    <Compile Include="Nethereum\Util\Keccak\HashCryptoNotBuildIn.cs" />
+    <Compile Include="Nethereum\Util\Keccak\HashResult.cs" />
+    <Compile Include="Nethereum\Util\Keccak\HashSize.cs" />
+    <Compile Include="Nethereum\Util\Keccak\IHash.cs" />
+    <Compile Include="Nethereum\Util\Keccak\IHashInfo.cs" />
+    <Compile Include="Nethereum\Util\Keccak\Keccak.cs" />
+    <Compile Include="Nethereum\Util\Sha3Keccack.cs" />
+    <Compile Include="Nethereum\Util\TransactionUtils.cs" />
     <Compile Include="PlaceOrder.xaml.cs">
       <DependentUpon>PlaceOrder.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -550,6 +615,17 @@
     <Folder Include="NBitcoin\RPC" />
     <Folder Include="NBitcoin\Stealth" />
     <Folder Include="NBitcoin\Utils" />
+    <Folder Include="Nethereum" />
+    <Folder Include="Nethereum\Hex" />
+    <Folder Include="Nethereum\Hex\HexConvertors" />
+    <Folder Include="Nethereum\Hex\HexConvertors\Extensions" />
+    <Folder Include="Nethereum\Hex\HexTypes" />
+    <Folder Include="Nethereum\Model" />
+    <Folder Include="Nethereum\RLP" />
+    <Folder Include="Nethereum\Signer" />
+    <Folder Include="Nethereum\Signer\Crypto" />
+    <Folder Include="Nethereum\Util" />
+    <Folder Include="Nethereum\Util\Keccak" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
