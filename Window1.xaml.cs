@@ -431,7 +431,6 @@ namespace NebliDex
 				string format_market = App.MarketList[i].format_market;
 				//We are going to alphabetically sort the marketlist
 				bool not_found = true;
-				int pos = 0;
 				for(int i2 = 0;i2 < Market_Box.Items.Count;i2++){
 					string item_detail = (string)Market_Box.Items[i2];
 					int compare = String.Compare(format_market,item_detail,true);
@@ -439,19 +438,22 @@ namespace NebliDex
 						not_found = false;
 						//Format Market precedes item_detail, add it in front
 						Market_Box.Items.Insert(i2,App.MarketList[i].format_market);
-						pos = i2;
 						break;
 					}
 				}
 				if(not_found == true){
 					Market_Box.Items.Add(App.MarketList[i].format_market);
-					pos = Market_Box.Items.Count-1;
 				}
-				if(i == App.exchange_market){
-					//Select this by default
-					Market_Box.SelectedIndex = pos;
+			}
+			//Now go through the market box list and find that match to the exchange market
+			for(int i = 0;i < Market_Box.Items.Count;i++){
+				string item_detail = (string)Market_Box.Items[i];
+				if(App.MarketList[App.exchange_market].format_market == item_detail){
+					//This is our default selected market
+					Market_Box.SelectedIndex = i;
+					break;
 				}
-			}			
+			}
 		}
 		
 		public void RefreshUI()
