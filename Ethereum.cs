@@ -34,6 +34,7 @@ namespace NebliDex
 	{
 		
 		public static string ETH_ATOMICSWAP_ADDRESS; //This is the address of the publicly viewable atomic swap ethereum contract
+		public static long ETH_CALLS = -1; //This will give each query to an ethereum API a specific ID that is not reused
 		
 		//Create a list of all the DNSSeeds for all electrum nodes
 		public static List<EthereumApiNode> EthereumApiNodeList = new List<EthereumApiNode>();
@@ -78,6 +79,12 @@ namespace NebliDex
 			EthereumApiNode api_node = EthereumApiNodeList[api_used];
 			string api_endpoint = api_node.endpoint;
 			
+			//Increment the eth calls
+			ETH_CALLS++;
+			if(ETH_CALLS >= long.MaxValue){
+				ETH_CALLS = 0;
+			}
+			
 			try{
 				//Each API has a different way to do this
 				bool timeout = false;
@@ -105,7 +112,7 @@ namespace NebliDex
 					JObject postdata = new JObject();
 					postdata["jsonrpc"] = "2.0";
 					postdata["method"] = "eth_getBalance";
-					postdata["id"] = 1;
+					postdata["id"] = ETH_CALLS;
 					JArray param = new JArray(address,"latest");
 					postdata["params"] = param;
 					string serialized_postdata = JsonConvert.SerializeObject(postdata);
@@ -150,6 +157,12 @@ namespace NebliDex
 			EthereumApiNode api_node = EthereumApiNodeList[api_used];
 			string api_endpoint = api_node.endpoint;
 			
+			//Increment the eth calls
+			ETH_CALLS++;
+			if(ETH_CALLS >= long.MaxValue){
+				ETH_CALLS = 0;
+			}
+			
 			try{
 				bool timeout = false;
 				if(api_node.type == 0){
@@ -175,7 +188,7 @@ namespace NebliDex
 					JObject postdata = new JObject();
 					postdata["jsonrpc"] = "2.0";
 					postdata["method"] = "eth_getTransactionCount";
-					postdata["id"] = 1;
+					postdata["id"] = ETH_CALLS;
 					JArray param = new JArray(address,"latest");
 					postdata["params"] = param;
 					string serialized_postdata = JsonConvert.SerializeObject(postdata);
@@ -215,10 +228,17 @@ namespace NebliDex
 		{
 			//This function returns the gas price in Gwei
 			int api_used = (int)Math.Round(GetRandomNumber(1,EthereumApiNodeList.Count))-1;
-			
+
 			//Each API has a different way to do this
 			EthereumApiNode api_node = EthereumApiNodeList[api_used];
 			string api_endpoint = api_node.endpoint;
+			
+			//Increment the eth calls
+			ETH_CALLS++;
+			if(ETH_CALLS >= long.MaxValue){
+				ETH_CALLS = 0;
+			}
+						
 			try{
 				bool timeout = false;
 				if(api_node.type == 0){
@@ -244,7 +264,7 @@ namespace NebliDex
 					JObject postdata = new JObject();
 					postdata["jsonrpc"] = "2.0";
 					postdata["method"] = "eth_gasPrice";
-					postdata["id"] = 1;
+					postdata["id"] = ETH_CALLS;
 					JArray param = new JArray();
 					postdata["params"] = param;
 					string serialized_postdata = JsonConvert.SerializeObject(postdata);
@@ -286,6 +306,13 @@ namespace NebliDex
 			//Each API has a different way to do this
 			EthereumApiNode api_node = EthereumApiNodeList[api_used];
 			string api_endpoint = api_node.endpoint;
+			
+			//Increment the eth calls
+			ETH_CALLS++;
+			if(ETH_CALLS >= long.MaxValue){
+				ETH_CALLS = 0;
+			}
+			
 			try{
 				bool timeout = false;
 				if(api_node.type == 0){
@@ -315,7 +342,7 @@ namespace NebliDex
 					JObject postdata = new JObject();
 					postdata["jsonrpc"] = "2.0";
 					postdata["method"] = "eth_call";
-					postdata["id"] = 1;
+					postdata["id"] = ETH_CALLS;
 					JObject paramdata = new JObject();
 					paramdata["to"] = contract_add;
 					paramdata["data"] = data;
@@ -362,6 +389,13 @@ namespace NebliDex
 			//Each API has a different way to do this
 			EthereumApiNode api_node = EthereumApiNodeList[api_used];
 			string api_endpoint = api_node.endpoint;
+
+			//Increment the eth calls
+			ETH_CALLS++;
+			if(ETH_CALLS >= long.MaxValue){
+				ETH_CALLS = 0;
+			}			
+			
 			try{
 				bool timeout = false;
 				if(api_node.type == 0){
@@ -387,7 +421,7 @@ namespace NebliDex
 					JObject postdata = new JObject();
 					postdata["jsonrpc"] = "2.0";
 					postdata["method"] = "eth_estimateGas";
-					postdata["id"] = 1;
+					postdata["id"] = ETH_CALLS;
 					JObject paramdata = new JObject();
 					paramdata["to"] = to_add;
 					paramdata["from"] = from_add;
@@ -429,6 +463,13 @@ namespace NebliDex
 			EthereumApiNode api_node = EthereumApiNodeList[api_used];
 			string api_endpoint = api_node.endpoint;
 			NebliDexNetLog("Broadcasting Ethereum transaction: "+rawhex);
+			
+			//Increment the eth calls
+			ETH_CALLS++;
+			if(ETH_CALLS >= long.MaxValue){
+				ETH_CALLS = 0;
+			}
+			
 			timeout = false;
 			try{				
 				if(api_node.type == 0){
@@ -455,7 +496,7 @@ namespace NebliDex
 					JObject postdata = new JObject();
 					postdata["jsonrpc"] = "2.0";
 					postdata["method"] = "eth_sendRawTransaction";
-					postdata["id"] = 1;
+					postdata["id"] = ETH_CALLS;
 					JArray param = new JArray(rawhex);
 					postdata["params"] = param;
 					string serialized_postdata = JsonConvert.SerializeObject(postdata);
@@ -494,6 +535,13 @@ namespace NebliDex
 			//Each API has a different way to do this
 			EthereumApiNode api_node = EthereumApiNodeList[api_used];
 			string api_endpoint = api_node.endpoint;
+			
+			//Increment the eth calls
+			ETH_CALLS++;
+			if(ETH_CALLS >= long.MaxValue){
+				ETH_CALLS = 0;
+			}
+			
 			try{
 				bool timeout = false;
 				if(api_node.type == 0){
@@ -542,7 +590,7 @@ namespace NebliDex
 					JObject postdata = new JObject();
 					postdata["jsonrpc"] = "2.0";
 					postdata["method"] = "eth_getTransactionByHash";
-					postdata["id"] = 1;
+					postdata["id"] = ETH_CALLS;
 					JArray param = new JArray(txhash);
 					postdata["params"] = param;
 					string serialized_postdata = JsonConvert.SerializeObject(postdata);
@@ -575,10 +623,15 @@ namespace NebliDex
 					}
 					Nethereum.Hex.HexTypes.HexBigInteger tx_blocknum = new Nethereum.Hex.HexTypes.HexBigInteger(js["result"]["blockNumber"].ToString());
 					
+					ETH_CALLS++;
+					if(ETH_CALLS >= long.MaxValue){
+						ETH_CALLS = 0;
+					}
+					
 					postdata = new JObject();
 					postdata["jsonrpc"] = "2.0";
 					postdata["method"] = "eth_blockNumber";
-					postdata["id"] = 1;
+					postdata["id"] = ETH_CALLS;
 					param = new JArray();
 					postdata["params"] = param;
 					serialized_postdata = JsonConvert.SerializeObject(postdata);
