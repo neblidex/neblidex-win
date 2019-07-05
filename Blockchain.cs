@@ -34,9 +34,9 @@ namespace NebliDex
 	{
 		
 		public static System.Object transactionLock = new System.Object(); //This is a lock that prevents multiple active transactions
-		public static decimal[] blockchain_fee = new decimal[3]; //Ordered based on cointype
+		public static decimal[] blockchain_fee = new decimal[7]; //Ordered based on cointype
 		public static decimal ndex_fee = 10; //10 Total for trade, usually split per trader
-		public static decimal[] dust_minimum = new decimal[3]; //The smallest UTXOUT for a transaction possible, otherwise it will be rejected
+		public static decimal[] dust_minimum = new decimal[7]; //The smallest UTXOUT for a transaction possible, otherwise it will be rejected
 		public static bool testnet_mode = false; //Easy switch between testnet and main
 		public static uint ntp1downcounter = 0; //If more than 2 down counts, network is down
 		public static int lastvalidate_time = 0;
@@ -87,6 +87,7 @@ namespace NebliDex
 		public static string GenerateCoinAddress(ExtKey key,int wallet)
 		{
 			//This function will create an address specific to the wallet
+			if(GetWalletBlockchainType(wallet) == 6){return "";} //Ethereum doesn't use this scheme base58
 			Network my_net;
 			if(testnet_mode == false){
 				my_net = Network.Main;
@@ -95,45 +96,68 @@ namespace NebliDex
 			}
 			//Modify the version byte
 			ChangeVersionByte(wallet,ref my_net);
-			return key.PrivateKey.PubKey.GetAddress(my_net).ToString();
+			string address = key.PrivateKey.PubKey.GetAddress(my_net).ToString();
+			return address;
 		}
 		
 		public static void ChangeVersionByte(int wallet, ref Network my_net)
 		{
-			if(testnet_mode == false){
-				if(wallet == 0 || wallet > 2){
-					//Neblio
+			int blockchain = GetWalletBlockchainType(wallet);
+			my_net.useGroestlHash = false; //Default
+			
+			if(testnet_mode == false){				
+				if(blockchain == 0 || blockchain == 6){
+					//Neblio and Ethereum (which doesn't use base58)
 					my_net.base58Prefixes[(int)Base58Type.PUBKEY_ADDRESS] = new byte[] { (53) }; //Neblio (N)
 					my_net.base58Prefixes[(int)Base58Type.SCRIPT_ADDRESS] = new byte[] { (112) }; //Little n
-				}else if(wallet == 1){
-					//Bitcoin
+				}else if(blockchain == 1 || blockchain == 4){
+					//Bitcoin and Bitcoin Cash
 					my_net.base58Prefixes[(int)Base58Type.PUBKEY_ADDRESS] = new byte[] { (0) }; //Bitcoin (1)
 					my_net.base58Prefixes[(int)Base58Type.SCRIPT_ADDRESS] = new byte[] { (5) }; //P2SH Address (3)
-				}else if(wallet == 2){
+				}else if(blockchain == 2){
 					//Litecoin
 					my_net.base58Prefixes[(int)Base58Type.PUBKEY_ADDRESS] = new byte[] { (48) }; //Litecoin (L)
 					my_net.base58Prefixes[(int)Base58Type.SCRIPT_ADDRESS] = new byte[] { (50) }; //P2SH (M)
+				}else if(blockchain == 3){
+					//Groestlcoin
+					my_net.useGroestlHash = true;
+					my_net.base58Prefixes[(int)Base58Type.PUBKEY_ADDRESS] = new byte[] { (36) }; //(F)
+					my_net.base58Prefixes[(int)Base58Type.SCRIPT_ADDRESS] = new byte[] { (5) }; //P2SH (3)
+				}else if(blockchain == 5){
+					//Monacoin
+					my_net.base58Prefixes[(int)Base58Type.PUBKEY_ADDRESS] = new byte[] { (50) }; //(M)
+					my_net.base58Prefixes[(int)Base58Type.SCRIPT_ADDRESS] = new byte[] { (55) }; //P2SH (P)
 				}
 			}else{
 				//Testnets
-				if(wallet == 0 || wallet > 2){
-					//Neblio
+				if(blockchain == 0 || blockchain == 6){
+					//Neblio and Ethereum (which doesn't use base58)
 					my_net.base58Prefixes[(int)Base58Type.PUBKEY_ADDRESS] = new byte[] { (65) }; //Neblio (T)
 					my_net.base58Prefixes[(int)Base58Type.SCRIPT_ADDRESS] = new byte[] { (127) }; //Little t
-				}else if(wallet == 1){
-					//Bitcoin
+				}else if(blockchain == 1 || blockchain == 4){
+					//Bitcoin and Bitcoin Cash
 					my_net.base58Prefixes[(int)Base58Type.PUBKEY_ADDRESS] = new byte[] { (111) }; //Bitcoin (m or n)
 					my_net.base58Prefixes[(int)Base58Type.SCRIPT_ADDRESS] = new byte[] { (196) }; //P2SH Address (2)
-				}else if(wallet == 2){
+				}else if(blockchain == 2){
 					//Litecoin
 					my_net.base58Prefixes[(int)Base58Type.PUBKEY_ADDRESS] = new byte[] { (111) }; //Litecoin (m or n)
 					my_net.base58Prefixes[(int)Base58Type.SCRIPT_ADDRESS] = new byte[] { (196) }; //P2SH (2)
-				}				
+				}else if(blockchain == 3){
+					//Groestlcoin
+					my_net.useGroestlHash = true;
+					my_net.base58Prefixes[(int)Base58Type.PUBKEY_ADDRESS] = new byte[] { (111) }; // (m or n)
+					my_net.base58Prefixes[(int)Base58Type.SCRIPT_ADDRESS] = new byte[] { (196) }; //P2SH (2)
+				}else if(blockchain == 5){
+					//Monacoin
+					my_net.base58Prefixes[(int)Base58Type.PUBKEY_ADDRESS] = new byte[] { (111) }; //(m or n)
+					my_net.base58Prefixes[(int)Base58Type.SCRIPT_ADDRESS] = new byte[] { (117) }; //P2SH (p)
+				}
 			}
 		}
 		
 		public static bool IsScriptHash(string address,Network my_net)
 		{
+			//Bitcoin Cash addresses must already be converted
 			byte[] mybytes = Encoders.Base58Check.DecodeData(address);
 			byte[] version_p2pkh = my_net.base58Prefixes[(int)Base58Type.PUBKEY_ADDRESS];
 			byte[] version_p2sh = my_net.base58Prefixes[(int)Base58Type.SCRIPT_ADDRESS];
@@ -193,7 +217,9 @@ namespace NebliDex
 			
 			decimal totalamount = 0;
 			decimal change = 0;
-			if(wallet < 3){
+
+			bool wallet_ntp1 = IsWalletNTP1(wallet);
+			if(wallet_ntp1 == false){
 				totalamount = GetWalletAmount(wallet);
 				change = totalamount-amount; //Simple calculation
 			}else{
@@ -203,16 +229,7 @@ namespace NebliDex
 			}
 			if(change < 0){return null;} //The amount is greater than the wallet balance
 			
-			int connectiontype = 0;
-			if(wallet == 0){
-				connectiontype = 0;
-			}else if(wallet == 1){
-				connectiontype = 1;
-			}else if(wallet == 2){
-				connectiontype = 2;
-			}else{
-				connectiontype = 0;
-			}
+			int connectiontype = GetWalletBlockchainType(wallet);
 			
 			Decimal dust_decimal = dust_minimum[connectiontype];
 			dust_decimal = Decimal.Multiply(dust_decimal,100000000);
@@ -225,7 +242,7 @@ namespace NebliDex
 				if(connectiontype != 0){
 					lock(DexConnectionList){
 						for(int i=0;i<DexConnectionList.Count;i++){
-							if(DexConnectionList[i].contype == connectiontype && DexConnectionList[i].open == true){
+							if(DexConnectionList[i].contype == 1 && DexConnectionList[i].open == true && DexConnectionList[i].blockchain_type == connectiontype){
 								dex = DexConnectionList[i];
 								break;
 							}
@@ -263,21 +280,33 @@ namespace NebliDex
 				Transaction tx = new Transaction();
 				Transaction predict_tx = new Transaction(); //Used to predict the miner fee
 				
-				if(wallet == 0 || wallet > 2){
+				if(connectiontype == 0){
 					//This is a Neblio based wallet, transaction has timestamp in it
 					tx.hasTimeStamp = true;
 					predict_tx.hasTimeStamp = true;
+				}else if(connectiontype == 4){
+					//Bitcoin Cash has a different hashing than Bitcoin
+					tx.useForkID = true;
+					predict_tx.useForkID = true;
+					tx.Version = 2;
+				}else if(connectiontype == 3){
+					//Groestlcoin uses a different set of hashing than Bitcoin as wel
+					tx.useHASH256 = false;
+					predict_tx.useHASH256 = false;
 				}
 				
 				bool sendtoken = false;
 				
-				if(val_fee > 0 || wallet > 2){
+				if(val_fee > 0 || wallet_ntp1 == true){
 					sendtoken = true;
 				}
 				
+				//Make a list of the input txins
+				List<BigInteger> utxo_values = new List<BigInteger>();
+				
 				//This is for a normal transaction
 				//Go through each row of results
-				if(wallet < 3 && sendtoken == false){
+				if(wallet_ntp1 == false && sendtoken == false){
 					BigInteger total_tx_amount = 0;
 
 					Decimal totalamount_dec = totalamount;
@@ -300,7 +329,7 @@ namespace NebliDex
 						OutPoint utxout = OutPoint.Parse(tx_hash+"-"+tx_pos); //Create the Outpoint
 						TxIn tx_in = new TxIn();
 						tx_in.PrevOut = utxout;
-						
+												
 						if(wallet == 0){
 							string tokid = row["tx_tokenid"].ToString();
 							if(tokid.Length == 0){
@@ -309,11 +338,13 @@ namespace NebliDex
 								total_tx_amount = BigInteger.Add(total_tx_amount,tx_amount);
 								tx.Inputs.Add(tx_in); //Add to the inputs
 								predict_tx.Inputs.Add(tx_in);
+								utxo_values.Add(tx_amount);
 							}
 						}else{
 							total_tx_amount = BigInteger.Add(total_tx_amount,tx_amount);
 							tx.Inputs.Add(tx_in); //Add to the inputs
 							predict_tx.Inputs.Add(tx_in);
+							utxo_values.Add(tx_amount);
 						}
 						total_utxo++;
 					}
@@ -380,7 +411,7 @@ namespace NebliDex
 						return null;
 					}
 					
-					if(wallet > 2){
+					if(wallet_ntp1 == true){
 						amount = 0; //We do not want to send NEBL to the to address
 					}
 					change -= amount;
@@ -421,7 +452,7 @@ namespace NebliDex
 				};
 				predict_tx.Outputs.Add(tout);
 				
-				if(extra_neb > 0 || wallet < 3){
+				if(extra_neb > 0 || wallet_ntp1 == false){
 					//NTP1 sends do not have another TO address unless we want it to
 					//Only Neblio sends
 					tout = new TxOut()
@@ -452,7 +483,7 @@ namespace NebliDex
 					//Neblio fee has to be in multiples of 10,000 satoshi (0.0001)
 					//Per Eddy, this value is rounded up
 					miner_fee = Math.Ceiling(miner_fee / 0.0001m)*0.0001m;
-				}else if(connectiontype == 1 || connectiontype == 2){
+				}else{
 					if(miner_fee < 0.00001m){
 						//Bitcoin and Litecoin Minimum relay fee
 						miner_fee = 0.00001m;
@@ -471,7 +502,7 @@ namespace NebliDex
 					//We are sending to a multisig wallet, so send some extra to cover the eventual transfer
 					//We must also agree to pay extra for the multsig
 					//We will use a fee that estimates based on the average multsig out transaction of 400 bytes
-					decimal multisig_fee = Decimal.Multiply(400,fee_per_byte);
+					decimal multisig_fee = Decimal.Multiply(600,fee_per_byte);
 					if(amount < blockchain_fee[connectiontype]*2){
 						//We are sending a small amount
 						multisig_fee = multisig_fee*2; //Double the fee
@@ -496,7 +527,7 @@ namespace NebliDex
 				
 				if(change < 0){
 					if(exactamount == true){
-						NebliDexNetLog("Not enough Neblio to cover exact amount");
+						NebliDexNetLog("Not enough coin to cover exact amount");
 						return null;
 					} //We must send an exact amount to sender otherwise fail
 					
@@ -559,11 +590,16 @@ namespace NebliDex
 				//It must be signed by both people for it to be transmitted
 				
 				//Now sign the real transaction
-				tx.Sign(priv_key.PrivateKey,false);
-				
+				if(utxo_values.Count == 0){
+					tx.Sign(priv_key.PrivateKey,false);
+				}else{
+					//Or use the UTXO values for the scriptsigs
+					tx.Sign(priv_key.PrivateKey,false,utxo_values);
+				}
+			
 				if(broadcast == true){
 					//Send the transaction
-					bool timeout;
+					bool timeout;					
 					string id = TransactionBroadcast(wallet,tx.ToHex(),out timeout);
 					if(timeout == false){
 						if(id.Length == 0){
@@ -626,17 +662,19 @@ namespace NebliDex
 				
 				List<string> sendtoken =  new List<string>(); //This is a list of all the tokens to send, in order
 				List<int> sendtoken_wallet = new List<int>(); //The wallet matching the ID
-				for(int i = 0;i < total_ntp1_tokens;i++){
-					int tokwal = i+3;
-					string tokid = GetWalletTokenID(tokwal);
-					if(tokid.Length == 0){continue;}
-					Decimal bal = GetBlockchainAddressBalance(tokwal,from_add,false);
-					Decimal bal2 =  GetWalletAmount(tokwal);
-					if(bal2.Equals(bal) == false){return null;} //These should be the same
-					if(bal > 0){
-						//This will tell us if we need to send this token too
-						sendtoken.Add(tokid);
-						sendtoken_wallet.Add(tokwal);
+				for(int i = 0;i < WalletList.Count;i++){
+					if(IsWalletNTP1(WalletList[i].type) == true){
+						int tokwal = WalletList[i].type;
+						string tokid = GetWalletTokenID(tokwal);
+						if(tokid.Length == 0){continue;}
+						Decimal bal = GetBlockchainAddressBalance(tokwal,from_add,false);
+						Decimal bal2 =  GetWalletAmount(tokwal);
+						if(bal2.Equals(bal) == false){return null;} //These should be the same
+						if(bal > 0){
+							//This will tell us if we need to send this token too
+							sendtoken.Add(tokid);
+							sendtoken_wallet.Add(tokwal);
+						}
 					}
 				}
 				
@@ -797,7 +835,7 @@ namespace NebliDex
 			return null;
 		}
 		
-public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,string to_add, string redeemscript_string, uint unlock_time, string secret, bool refund)
+		public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,string to_add, string redeemscript_string, uint unlock_time, string secret, bool refund)
 		{
 			
 			//This function is specifically for redeeming or refunding a balance from a atomic swap address
@@ -815,17 +853,8 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 				return null; //There are no funds in this account
 			}
 			
-			int connectiontype = 0;
-			if(wallet == 0){
-				connectiontype = 0;
-			}else if(wallet == 1){
-				connectiontype = 1;
-			}else if(wallet == 2){
-				connectiontype = 2;
-			}else{
-				connectiontype = 0;
-			}
-			
+			int connectiontype = GetWalletBlockchainType(wallet);
+
 			Decimal dust_decimal = dust_minimum[connectiontype];
 			dust_decimal = Decimal.Multiply(dust_decimal,100000000);
 			BigInteger dust_output = new BigInteger(dust_decimal); //Get the dust minimum
@@ -837,7 +866,7 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 				if(connectiontype != 0){
 					lock(DexConnectionList){
 						for(int i=0;i<DexConnectionList.Count;i++){
-							if(DexConnectionList[i].contype == connectiontype){
+							if(DexConnectionList[i].contype == 1 && DexConnectionList[i].open == true && DexConnectionList[i].blockchain_type == connectiontype){
 								dex = DexConnectionList[i];
 								break;
 							}
@@ -854,16 +883,25 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 				//Create the transaction along with the prediction transaction
 				Transaction tx = new Transaction();
 				Transaction predict_tx = new Transaction(); //Used to predict the miner fee
-				
-				if(wallet == 0 || wallet > 2){
+
+				if(connectiontype == 0){
 					//This is a Neblio based wallet, transaction has timestamp in it
 					tx.hasTimeStamp = true;
 					predict_tx.hasTimeStamp = true;
+				}else if(connectiontype == 4){
+					//This is a Bitcoin Cash hash
+					tx.useForkID = true;
+					predict_tx.useForkID = true;
+					tx.Version = 2;
+				}else if(connectiontype == 3){
+					//Groestlcoin uses a different set of hashing than Bitcoin as wel
+					tx.useHASH256 = false;
+					predict_tx.useHASH256 = false;
 				}
 				
 				bool sendtoken = false;
-				
-				if(wallet > 2){
+				bool wallet_ntp1 = IsWalletNTP1(wallet);
+				if(wallet_ntp1 == true){
 					//Either Neblio with fee in same transaction or token with fee, or just token
 					sendtoken = true;
 				}
@@ -871,7 +909,10 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 				//This is for a normal transaction
 				//Go through each row of results
 				
-				if(wallet < 3 && sendtoken == false){
+				//Make a list of the input txins
+				List<BigInteger> utxo_values = new List<BigInteger>();
+				
+				if(wallet_ntp1 == false && sendtoken == false){
 					BigInteger total_tx_amount = 0;
 					BigInteger satoshi_total = new BigInteger(swap_balance_sat);
 					
@@ -896,11 +937,13 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 								total_tx_amount = BigInteger.Add(total_tx_amount,tx_amount);
 								tx.Inputs.Add(tx_in); //Add to the inputs
 								predict_tx.Inputs.Add(tx_in);
+								utxo_values.Add(tx_amount);
 							}
 						}else{
 							total_tx_amount = BigInteger.Add(total_tx_amount,tx_amount);
 							tx.Inputs.Add(tx_in); //Add to the inputs
 							predict_tx.Inputs.Add(tx_in);
+							utxo_values.Add(tx_amount);
 						}
 						total_utxo++;
 					}
@@ -1025,7 +1068,7 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 					for(int i=0;i < predict_tx.Inputs.Count;i++){
 						predict_tx.Inputs[i].Sequence = 0; //This must be allowed to use checklocktimeverify
 					}
-				}				
+				}		
 
 				//Put the pubkeys in the fake inputs				
 				for(int i=0;i < predict_tx.Inputs.Count;i++){
@@ -1060,7 +1103,7 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 					//Neblio fee has to be in multiples of 10,000 satoshi (0.0001)
 					//Per Eddy, this value is rounded up
 					miner_fee = Math.Ceiling(miner_fee / 0.0001m)*0.0001m;
-				}else if(connectiontype == 1 || connectiontype == 2){
+				}else{
 					if(miner_fee < 0.00001m){
 						//Bitcoin Minimum relay fee
 						miner_fee = 0.00001m;
@@ -1103,7 +1146,11 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 					//Create the scriptsig for each input
 					Script redeem_script = new Script(redeemscript_string);
 					ScriptCoin redeem_coin = null;
-					redeem_coin = new ScriptCoin(tx.Inputs[i].PrevOut,new TxOut(10000,redeem_script.PaymentScript),redeem_script);
+					if(utxo_values.Count == 0){
+						redeem_coin = new ScriptCoin(tx.Inputs[i].PrevOut,new TxOut(10000,redeem_script.PaymentScript),redeem_script);
+					}else{
+						redeem_coin = new ScriptCoin(tx.Inputs[i].PrevOut,new TxOut(new Money(utxo_values[i]),redeem_script.PaymentScript),redeem_script);
+					}
 					TransactionSignature sig = tx.SignInput(priv_key.PrivateKey,redeem_coin); //Sign the transaction
 					Script p2pkh_script = PayToPubkeyHashTemplate.Instance.GenerateScriptSig(sig,priv_key.PrivateKey.PubKey); //Get the scriptsig that represents a typical p2pkh
 					Script final_scriptsig = null;
@@ -1525,46 +1572,51 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 							int canceltime = contract_locktime - maker_inclusion_time - max_transaction_wait / 2; //Will cancel the waiting if waited past maker locktime
 							NebliDexNetLog("Waiting for maker contract "+maker_contract_add+" to fund");
 							
-							bool balance_ok = false;							
-							decimal balance = 0;
-							if(maker_contract_add.Length > 0){
-								balance = GetBlockchainAddressBalance(maker_cointype,maker_contract_add,false);
-							}
+							int blockchain_type = GetWalletBlockchainType(maker_cointype);	
 							decimal expected_balance = Convert.ToDecimal(table.Rows[i]["receive_amount"].ToString(),CultureInfo.InvariantCulture);
-							if(balance >= expected_balance){
-								//This is good, maker has paid, now check if fees are ok
-								balance_ok = true;
-								int blockchain_type = 0;
-								if(maker_cointype == 1){
-									blockchain_type = 1;
-								}else if(maker_cointype == 2){
-									blockchain_type = 2;
-								}			
-								
-								decimal estimate_fee = blockchain_fee[blockchain_type]*0.35m; //This is the fee we expect to pay for transfer
-								if(blockchain_type == 0){
-									//Neblio fee has to be in multiples of 10,000 satoshi (0.0001)
-									//Per Eddy, this value is rounded up
-									estimate_fee = Math.Ceiling(estimate_fee / 0.0001m)*0.0001m;
-								}		
-								
-								if(maker_cointype > 2){
-									//This is a neblio token trade so check the neblio fees
-									decimal base_balance = GetBlockchainAddressBalance(0,maker_contract_add,false);
-									if(estimate_fee < 0.0002m){estimate_fee = 0.0002m;} //We need balance to pay for op_return and miner fee
-									if(base_balance - estimate_fee < 0){
-										NebliDexNetLog("Maker contract balance not enough to pay for fees");
-										balance_ok = false;
-									}
-								}else{
-									if(balance - expected_balance - estimate_fee < 0){
-										//Not enough balance to cover amount and fee
-										NebliDexNetLog("Maker contract balance not enough to pay for fees");
-										balance_ok = false;
+														
+							bool balance_ok = false;
+							bool receiving_eth = false;
+
+							if(blockchain_type != 6){							
+								decimal balance = 0;
+								if(maker_contract_add.Length > 0){
+									balance = GetBlockchainAddressBalance(maker_cointype,maker_contract_add,false);
+								}								
+								if(balance >= expected_balance){
+									//This is good, maker has paid, now check if fees are ok
+									balance_ok = true;									
+									decimal estimate_fee = blockchain_fee[blockchain_type]*0.35m; //This is the fee we expect to pay for transfer
+									if(blockchain_type == 0){
+										//Neblio fee has to be in multiples of 10,000 satoshi (0.0001)
+										//Per Eddy, this value is rounded up
+										estimate_fee = Math.Ceiling(estimate_fee / 0.0001m)*0.0001m;
+									}		
+									
+									bool wallet_ntp1 = IsWalletNTP1(maker_cointype);
+									if(wallet_ntp1 == true){
+										//This is a neblio token trade so check the neblio fees
+										decimal base_balance = GetBlockchainAddressBalance(0,maker_contract_add,false);
+										if(estimate_fee < 0.0002m){estimate_fee = 0.0002m;} //We need balance to pay for op_return and miner fee
+										if(base_balance - estimate_fee < 0){
+											NebliDexNetLog("Maker contract balance not enough to pay for fees");
+											balance_ok = false;
+										}
+									}else{
+										if(balance - expected_balance - estimate_fee < 0){
+											//Not enough balance to cover amount and fee
+											NebliDexNetLog("Maker contract balance not enough to pay for fees");
+											balance_ok = false;
+										}
 									}
 								}
+							}else{
+								//We will check the Ethereum contract for a balance
+								string secret_hash = table.Rows[i]["atomic_secret_hash"].ToString();
+								balance_ok = VerifyBlockchainEthereumAtomicSwap(secret_hash,expected_balance,GetWalletAddress(maker_cointype),canceltime);
+								receiving_eth = true;
 							}
-							
+
 							myquery = "Update MYTRANSACTIONS Set waittime = @time Where nindex = @index;";
 							if(UTCTime() > canceltime){
 								//Waiting too long, cancel this trade and wait for our locktime
@@ -1573,17 +1625,31 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 								UpdateWalletStatus(cointype,0); //Unlock taker account from sending
 							}else if(balance_ok == true){
 								//Maker has paid and with enough fees as well
-								//Try to pull the balance from the contract using the secret
-								string redeem_script_string = table.Rows[i]["custodial_redeemscript"].ToString();
+								//Try to pull the balance from the contract using the secret						
 								string secret = table.Rows[i]["atomic_secret"].ToString();
 								//The secret will be used to redeem
-								string my_redeem_add = GetWalletAddress(maker_cointype);
-								Transaction tx = CreateAtomicSwapP2SHTx(maker_cointype,maker_contract_add,my_redeem_add,redeem_script_string,0,secret,false);								
-								if(tx != null){
+								Transaction tx = null;
+								Nethereum.Signer.TransactionChainId eth_tx = null;
+								if(receiving_eth == false){
+									string my_redeem_add = GetWalletAddress(maker_cointype);
+									string redeem_script_string = table.Rows[i]["custodial_redeemscript"].ToString();
+									tx = CreateAtomicSwapP2SHTx(maker_cointype,maker_contract_add,my_redeem_add,redeem_script_string,0,secret,false);								
+								}else{
+									//Redeeming from the maker's ethereum contract
+									string secret_hash = table.Rows[i]["atomic_secret_hash"].ToString();
+									string redeem_data = GenerateEthereumAtomicSwapRedeemData(secret_hash,secret);
+									eth_tx = CreateSignedEthereumTransaction(ETH_ATOMICSWAP_ADDRESS,0,false,2,redeem_data);
+								}
+								if(tx != null || eth_tx != null){
 									//Now broadcast this transaction
 									bool timeout;
 									bool broadcast_ok = true;									
-									string txhash = TransactionBroadcast(maker_cointype,tx.ToHex(),out timeout);
+									string txhash;
+									if(tx != null){
+										txhash = TransactionBroadcast(maker_cointype,tx.ToHex(),out timeout);
+									}else{
+										txhash = TransactionBroadcast(maker_cointype,eth_tx.Signed_Hex,out timeout);
+									}
 									if(txhash.Length == 0 || timeout == true){
 										broadcast_ok = false; //Unable to broadcast transaction
 										NebliDexNetLog("Failed to redeem funds from maker contract");
@@ -1616,45 +1682,52 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 						if(UTCTime() - tx_waittime > 30){ //Been more than 30 seconds since checked this transaction
 							
 							int taker_cointype = Convert.ToInt32(table.Rows[i]["counterparty_cointype"].ToString());
-							string taker_contract_add = table.Rows[i]["custodial_redeemscript_add"].ToString();
+							int blockchain_type = GetWalletBlockchainType(taker_cointype);
 							int canceltime = Convert.ToInt32(table.Rows[i]["atomic_unlock_time"].ToString()); //Will cancel if taker doesn't pay in time
-							NebliDexNetLog("Waiting for taker contract "+taker_contract_add+" to fund");
-							
-							bool balance_ok = false;							
-							decimal balance = GetBlockchainAddressBalance(taker_cointype,taker_contract_add,false);
 							decimal expected_balance = Convert.ToDecimal(table.Rows[i]["receive_amount"].ToString(),CultureInfo.InvariantCulture);
-							if(balance >= expected_balance){
-								//This is good, taker has paid, now check if fees are ok
-								balance_ok = true;
-								int blockchain_type = 0;
-								if(taker_cointype == 1){
-									blockchain_type = 1;
-								}else if(taker_cointype == 2){
-									blockchain_type = 2;
-								}			
+							
+							bool balance_ok = false;
+							
+							if(blockchain_type != 6){
+								string taker_contract_add = table.Rows[i]["custodial_redeemscript_add"].ToString();
+								decimal balance = GetBlockchainAddressBalance(taker_cointype,taker_contract_add,false);
+								NebliDexNetLog("Waiting for taker contract "+taker_contract_add+" to fund");
 								
-								decimal estimate_fee = blockchain_fee[blockchain_type]*0.35m; //This is the fee we expect to pay for transfer
-								if(blockchain_type == 0){
-									//Neblio fee has to be in multiples of 10,000 satoshi (0.0001)
-									//Per Eddy, this value is rounded up
-									estimate_fee = Math.Ceiling(estimate_fee / 0.0001m)*0.0001m;
-								}		
-								
-								if(taker_cointype > 2){
-									//This is a neblio token trade so check the neblio fees
-									decimal base_balance = GetBlockchainAddressBalance(0,taker_contract_add,false);
-									if(estimate_fee < 0.0002m){estimate_fee = 0.0002m;} //We need balance to pay for op_return and miner fee
-									if(base_balance - estimate_fee < 0){
-										NebliDexNetLog("Taker contract balance not enough to pay for fees");
-										balance_ok = false;
-									}
-								}else{
-									if(balance - expected_balance - estimate_fee < 0){
-										//Not enough balance to cover amount and fee
-										NebliDexNetLog("Taker contract balance not enough to pay for fees");
-										balance_ok = false;
+								if(balance >= expected_balance){
+									//This is good, taker has paid, now check if fees are ok
+									balance_ok = true;
+																		
+									decimal estimate_fee = blockchain_fee[blockchain_type]*0.35m; //This is the fee we expect to pay for transfer
+									if(blockchain_type == 0){
+										//Neblio fee has to be in multiples of 10,000 satoshi (0.0001)
+										//Per Eddy, this value is rounded up
+										estimate_fee = Math.Ceiling(estimate_fee / 0.0001m)*0.0001m;
+									}		
+									
+									bool wallet_ntp1 = IsWalletNTP1(taker_cointype);
+									if(wallet_ntp1 == true){
+										//This is a neblio token trade so check the neblio fees
+										decimal base_balance = GetBlockchainAddressBalance(0,taker_contract_add,false);
+										if(estimate_fee < 0.0002m){estimate_fee = 0.0002m;} //We need balance to pay for op_return and miner fee
+										if(base_balance - estimate_fee < 0){
+											NebliDexNetLog("Taker contract balance not enough to pay for fees");
+											balance_ok = false;
+										}
+									}else{
+										if(balance - expected_balance - estimate_fee < 0){
+											//Not enough balance to cover amount and fee
+											NebliDexNetLog("Taker contract balance not enough to pay for fees");
+											balance_ok = false;
+										}
 									}
 								}
+							}else{
+								//We will check the Ethereum contract for a balance as this is what we are receiving
+								NebliDexNetLog("Waiting for taker to pay to contract");
+								string secret_hash = table.Rows[i]["atomic_secret_hash"].ToString();
+								int maker_inclusion_time = Convert.ToInt32(GetBlockInclusionTime(cointype,0)); //The time for my contract to use CLTV
+								int taker_canceltime = canceltime + max_transaction_wait / 2 + maker_inclusion_time; //This will be the taker's locktime
+								balance_ok = VerifyBlockchainEthereumAtomicSwap(secret_hash,expected_balance,GetWalletAddress(taker_cointype),taker_canceltime);								
 							}
 							
 							myquery = "Update MYTRANSACTIONS Set waittime = @time Where nindex = @index;";
@@ -1690,15 +1763,35 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 								decimal sendamount = Convert.ToDecimal(table.Rows[i]["amount"].ToString(),CultureInfo.InvariantCulture);
 								
 								decimal extra_neb = 0;
-								if((taker_cointype == 1 || taker_cointype == 2) && cointype == 3){
+								int taker_blockchain = GetWalletBlockchainType(taker_cointype);
+								int maker_blockchain = GetWalletBlockchainType(cointype);
+								if(taker_blockchain != 0 && cointype == 3){
 									//I'm sending NDEX and taker is sending BTC or LTC, give extra neblio for spending
 									extra_neb = blockchain_fee[0]*12;
 								}
-								Transaction tx = CreateSignedP2PKHTx(cointype,sendamount,destination_add,false,true,"",0,extra_neb,true);
-								if(tx != null){
+								Transaction tx = null;
+								Nethereum.Signer.TransactionChainId eth_tx = null;
+								string calculated_txhash = "";
+								if(maker_blockchain != 6){
+									tx = CreateSignedP2PKHTx(cointype,sendamount,destination_add,false,true,"",0,extra_neb,true);
+								}else{
+									//We are sending ethereum into the contract
+									string secret_hash = table.Rows[i]["atomic_secret_hash"].ToString();
+									string open_data = GenerateEthereumAtomicSwapOpenData(secret_hash,destination_add,canceltime); //With our parameters
+									eth_tx = CreateSignedEthereumTransaction(ETH_ATOMICSWAP_ADDRESS,sendamount,true,1,open_data);
+								}
+								if(tx != null || eth_tx != null){
 									//Prepare for transaction broadcast									
 									int reqtime = Convert.ToInt32(table.Rows[i]["req_utctime_ref"].ToString());
-									SetMyTransactionData("txhash",tx.GetHash().ToString(),reqtime,table.Rows[i]["order_nonce_ref"].ToString());
+									string txhex;
+									if(tx != null){
+										calculated_txhash = tx.GetHash().ToString();
+										txhex = tx.ToHex();
+									}else{
+										calculated_txhash = eth_tx.HashID;
+										txhex = eth_tx.Signed_Hex;
+									}
+									SetMyTransactionData("txhash",calculated_txhash,reqtime,table.Rows[i]["order_nonce_ref"].ToString()); //Update txhash
 									SetMyTransactionData("type",1,reqtime,table.Rows[i]["order_nonce_ref"].ToString());
 															
 									NebliDexNetLog("Maker paid to maker contract: "+destination_add);
@@ -1711,7 +1804,7 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 									//We can at least monitor the expected transaction
 									//Now broadcast this transaction
 									bool timeout;	
-									string txhash = TransactionBroadcast(cointype,tx.ToHex(),out timeout);
+									string txhash = TransactionBroadcast(cointype,txhex,out timeout);
 									if(txhash.Length == 0 || timeout == true){
 										NebliDexNetLog("Failed to broadcast transaction to maker contract but monitor anyway in case.");
 									}																			
@@ -1734,6 +1827,9 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 						if(UTCTime() - tx_waittime > 30){ //Been more than 30 seconds since checked this transaction
 							string secret_hash = table.Rows[i]["atomic_secret_hash"].ToString();
 							string maker_contract_add = table.Rows[i]["to_add"].ToString(); //Monitor our contract
+							if(GetWalletBlockchainType(cointype) == 6){
+								maker_contract_add = ETH_ATOMICSWAP_ADDRESS; //This is the location of the maker's contract
+							}
 							string maker_txhash = table.Rows[i]["txhash"].ToString();
 							int conf = TransactionConfirmations(cointype,maker_txhash);
 							
@@ -1748,16 +1844,34 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 									int refund_time = Convert.ToInt32(table.Rows[i]["atomic_refund_time"].ToString());
 									if(UTCTime() > refund_time){
 										NebliDexNetLog("Refunding from maker contract as contract expired");
-										int unlock_time = Convert.ToInt32(table.Rows[i]["atomic_unlock_time"].ToString()); 
-										string return_add = table.Rows[i]["from_add"].ToString();
-										string my_redeemscript_string = table.Rows[i]["to_add_redeemscript"].ToString();
-										//Refund from our contract if unable to get secret										
-										Transaction tx = CreateAtomicSwapP2SHTx(cointype,maker_contract_add,return_add,my_redeemscript_string,(uint)unlock_time,"",true);									
-										if(tx != null){
+										int unlock_time = Convert.ToInt32(table.Rows[i]["atomic_unlock_time"].ToString());
+										bool refunding_eth = false;
+										if(GetWalletBlockchainType(cointype) == 6){
+											refunding_eth = true;
+										}			
+										Transaction tx = null;
+										Nethereum.Signer.TransactionChainId eth_tx = null;
+										if(refunding_eth == false){
+											string return_add = table.Rows[i]["from_add"].ToString();
+											string my_redeemscript_string = table.Rows[i]["to_add_redeemscript"].ToString();
+											//Refund from our contract if unable to get secret								
+											tx = CreateAtomicSwapP2SHTx(cointype,maker_contract_add,return_add,my_redeemscript_string,(uint)unlock_time,"",true);									
+										}else{
+											//Refund from ethereum contract using just secret_hash
+											string refund_data = GenerateEthereumAtomicSwapRefundData(secret_hash);
+											eth_tx = CreateSignedEthereumTransaction(maker_contract_add,0,true,3,refund_data);
+										}
+										if(tx != null || eth_tx != null){
 											//Now broadcast this transaction
 											bool timeout;
 											bool broadcast_ok = true;
-											string txhash = TransactionBroadcast(cointype,tx.ToHex(),out timeout);
+											
+											string txhash = "";
+											if(tx != null){
+												txhash = TransactionBroadcast(cointype,tx.ToHex(),out timeout);
+											}else{
+												txhash = TransactionBroadcast(cointype,eth_tx.Signed_Hex,out timeout);
+											}
 											if(txhash.Length == 0 || timeout == true){
 												broadcast_ok = false; //Unable to broadcast transaction
 												NebliDexNetLog("Failed to refund funds from my contract");
@@ -1788,17 +1902,35 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 									}
 								}else{
 									//Found the secret, now pull from taker contract right away
-									string taker_contract_add = table.Rows[i]["custodial_redeemscript_add"].ToString();
-									string taker_redeemscript_string = table.Rows[i]["custodial_redeemscript"].ToString();
+									bool receiving_eth = false;
 									int taker_cointype = Convert.ToInt32(table.Rows[i]["counterparty_cointype"].ToString());
 									//The secret will be used to redeem
-									string my_redeem_add = GetWalletAddress(taker_cointype);
-									Transaction tx = CreateAtomicSwapP2SHTx(taker_cointype,taker_contract_add,my_redeem_add,taker_redeemscript_string,0,secret,false);								
-									if(tx != null){
+									if(GetWalletBlockchainType(taker_cointype) == 6){
+										//We are redeeming eth
+										receiving_eth = true;
+									}
+									Transaction tx = null;
+									Nethereum.Signer.TransactionChainId eth_tx = null;
+									string taker_contract_add = table.Rows[i]["custodial_redeemscript_add"].ToString();
+									if(receiving_eth == false){
+										string taker_redeemscript_string = table.Rows[i]["custodial_redeemscript"].ToString();
+										string my_redeem_add = GetWalletAddress(taker_cointype);
+										tx = CreateAtomicSwapP2SHTx(taker_cointype,taker_contract_add,my_redeem_add,taker_redeemscript_string,0,secret,false);								
+									}else{
+										//All we need is the secret and the secret hash
+										string redeem_data = GenerateEthereumAtomicSwapRedeemData(secret_hash,secret);
+										eth_tx = CreateSignedEthereumTransaction(taker_contract_add,0,true,2,redeem_data);
+									}
+									if(tx != null || eth_tx != null){
 										//Now broadcast this transaction
 										bool timeout;
 										bool broadcast_ok = true;
-										string txhash = TransactionBroadcast(taker_cointype,tx.ToHex(),out timeout);
+										string txhash;
+										if(tx != null){
+											txhash = TransactionBroadcast(taker_cointype,tx.ToHex(),out timeout);
+										}else{
+											txhash = TransactionBroadcast(taker_cointype,eth_tx.Signed_Hex,out timeout);
+										}
 										if(txhash.Length == 0 || timeout == true){
 											broadcast_ok = false; //Unable to broadcast transaction
 											NebliDexNetLog("Failed to redeem funds from taker contract");
@@ -1861,20 +1993,44 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 							if(UTCTime() > refund_time){
 								//Time to return funds
 								NebliDexNetLog("Refunding from taker contract as contract has expired");
+								bool refunding_eth = false;
+								if(GetWalletBlockchainType(cointype) == 6){
+									//Refunding eth
+									refunding_eth = true;
+								}
+								decimal balance = 0;
+								bool close_ok = false;
 								string taker_contract_add = table.Rows[i]["to_add"].ToString(); //Monitor our contract
 								string taker_txhash = table.Rows[i]["txhash"].ToString(); //The hash that funded the contract
-								bool close_ok = false;
-								decimal balance = GetBlockchainAddressBalance(cointype,taker_contract_add,false);
+								if(refunding_eth == false){							
+									balance = GetBlockchainAddressBalance(cointype,taker_contract_add,false);
+								}else{
+									string secret_hash = table.Rows[i]["atomic_secret_hash"].ToString();
+									balance = GetBlockchainEthereumAtomicSwapBalance(secret_hash);
+								}
 								if(balance > 0){
-									int unlock_time = Convert.ToInt32(table.Rows[i]["atomic_unlock_time"].ToString()); 
-									string return_add = table.Rows[i]["from_add"].ToString();
-									string my_redeemscript_string = table.Rows[i]["to_add_redeemscript"].ToString();
-									Transaction tx = CreateAtomicSwapP2SHTx(cointype,taker_contract_add,return_add,my_redeemscript_string,(uint)unlock_time,"",true);
-									if(tx != null){
+									Transaction tx = null;
+									Nethereum.Signer.TransactionChainId eth_tx = null;
+									if(refunding_eth == false){
+										int unlock_time = Convert.ToInt32(table.Rows[i]["atomic_unlock_time"].ToString()); 
+										string return_add = table.Rows[i]["from_add"].ToString();
+										string my_redeemscript_string = table.Rows[i]["to_add_redeemscript"].ToString();
+										tx = CreateAtomicSwapP2SHTx(cointype,taker_contract_add,return_add,my_redeemscript_string,(uint)unlock_time,"",true);
+									}else{
+										string secret_hash = table.Rows[i]["atomic_secret_hash"].ToString();
+										string refund_data = GenerateEthereumAtomicSwapRefundData(secret_hash);
+										eth_tx = CreateSignedEthereumTransaction(taker_contract_add,0,true,3,refund_data);
+									}
+									if(tx != null || eth_tx != null){
 										//Now broadcast this transaction
 										bool timeout;
 										bool broadcast_ok = true;
-										string txhash = TransactionBroadcast(cointype,tx.ToHex(),out timeout);
+										string txhash;
+										if(tx != null){
+											txhash = TransactionBroadcast(cointype,tx.ToHex(),out timeout);
+										}else{
+											txhash = TransactionBroadcast(cointype,eth_tx.Signed_Hex,out timeout);
+										}
 										if(txhash.Length == 0 || timeout == true){
 											broadcast_ok = false; //Unable to broadcast transaction
 											NebliDexNetLog("Failed to refund funds from my contract");
@@ -2035,8 +2191,10 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 						int market = Convert.ToInt32(table.Rows[i]["market"].ToString());
 						int reqtype = Convert.ToInt32(table.Rows[i]["reqtype"].ToString());
 						string redeem_add = table.Rows[i]["redeemscript_add"].ToString();
+						
 						int redeemwallet=0; //The type of wallet of the taker contract
-
+						
+						bool checking_eth = false;
 						if(reqtype == 0){
 							//Taker buying trade
 							redeemwallet = MarketList[market].base_wallet;
@@ -2045,8 +2203,15 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 							redeemwallet = MarketList[market].trade_wallet;
 						}
 						
-						Decimal contract_balance = GetBlockchainAddressBalance(redeemwallet,redeem_add,true);
-						
+						Decimal contract_balance = 0;
+						if(GetWalletBlockchainType(redeemwallet) != 6){
+							checking_eth = false;
+							contract_balance = GetBlockchainAddressBalance(redeemwallet,redeem_add,true);
+						}else{
+							//Check the balance of the ethereum contract using the taker secret hash
+							checking_eth = true;
+							contract_balance = GetBlockchainEthereumAtomicSwapBalance(redeem_add);
+						}
 						//Default update
 						myquery = "Update VALIDATING_TRANSACTIONS Set waittime = @time Where nindex = @index;";
 
@@ -2065,6 +2230,14 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 							}
 						}else if(status == 2){
 							//Waiting for maker to pull
+							if(checking_eth == true){
+								//Continuously try to grab the secret from contract, once it is visible, the contract has paid to maker
+								string secret = GetEthereumAtomicSwapSecret(redeem_add);
+								if(secret.Length > 0){
+									contract_balance = 0; //Secret was revealed so no balance is possibly there
+								}
+							}
+							
 							if(contract_balance == 0){
 								//Maker or taker has pulled, trade is completely finished
 								myquery = "Update VALIDATING_TRANSACTIONS Set waittime = @time, status = 3 Where nindex = @index;";
@@ -2183,23 +2356,17 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 			timeout = false;
 			//Will return the transaction hash id
 			try {
-				if(cointype == 1 || cointype == 2){
-					DexConnection dex = null;
-					
-					int connectiontype = 0;
-					if(cointype == 0){
-						connectiontype = 0;
-					}else if(cointype == 1){
-						connectiontype = 1;
-					}else if(cointype == 2){
-						connectiontype = 2;
-					}else{
-						connectiontype = 0;
+				int connectiontype = GetWalletBlockchainType(cointype);
+				if(connectiontype != 0){
+					if(connectiontype == 6){
+						//Ethereum has its own broadcasting method
+						return EthereumTransactionBroadcast(hex,out timeout);
 					}
-					
+					DexConnection dex = null;
+
 					lock(DexConnectionList){
 						for(int i2=0;i2<DexConnectionList.Count;i2++){
-							if(DexConnectionList[i2].contype == connectiontype && DexConnectionList[i2].open == true){
+							if(DexConnectionList[i2].contype == 1 && DexConnectionList[i2].open == true && DexConnectionList[i2].blockchain_type == connectiontype){
 								dex = DexConnectionList[i2];
 								break;
 							}
@@ -2226,9 +2393,7 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 					return result["result"].ToString(); //Should be transaction ID hash
 				}else{
 					//Neblio based transactions
-					//Get a random NTP1 node
-					int pos = (int)Math.Round(GetRandomNumber(1,NEBLNTP1List.Count))-1;
-					string nodeurl = NEBLNTP1List[pos]; //Currently only one node at this time
+					string nodeurl = NEBLAPI_server;
 					NebliDexNetLog("Sending NTP1 Transaction: "+hex);
 					string response = "";
 					JObject result = null;
@@ -2293,9 +2458,8 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 			try {
 				//This function is ran periodically and will grab all the NTP1 balances from an address
 				string nebl_add = GetWalletAddress(0); //Base wallet address
-				
-				int pos = (int)Math.Round(GetRandomNumber(1,NEBLNTP1List.Count))-1;
-				string nodeurl = NEBLNTP1List[pos]; //Currently only one node at this time
+
+				string nodeurl = NEBLAPI_server; //Currently only one node at this time
 				bool timeout;
 				string response = "";
 				JObject result = null;
@@ -2366,11 +2530,13 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 				}
 				
 				//We wil get the balances of each unspent and add them up
-				for(int i = 0;i < total_ntp1_tokens+1;i++){
-					int wallet = 0;
+				for(int i = 0;i < WalletList.Count;i++){
+					if(GetWalletBlockchainType(WalletList[i].type) != 0){continue;} //Only do neblio based wallets
+					int wallet = WalletList[i].type;
+					
 					string tokenid="";
-					if(i > 0){
-						wallet = i+2;
+					if(IsWalletNTP1(WalletList[i].type) == true){
+						//This is a token wallet
 						tokenid = GetWalletTokenID(wallet);
 						if(tokenid.Length == 0){continue;} //Skip wallets that do not exist
 					}
@@ -2559,30 +2725,24 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 		public static Decimal GetBlockchainAddressBalance(int cointype,string address,bool satoshi)
 		{
 
-			if(cointype == 1 || cointype == 2){
+			int connectiontype = GetWalletBlockchainType(cointype);
+			if(connectiontype != 0){
 				//This will get the balance of an address based on unspent and return it
 				//This is a blocking call
-				//It will return the amount in satoshi for everything except tokens
+				//It will return the amount in satoshi for everything except tokens and ethereum
+				if(connectiontype == 6){
+					//This is an ethereum transaction
+					return GetBlockchainEthereumBalance(address);
+				}
 				DexConnection dex = null;
 				
-				int connectiontype = 0;
-				if(cointype == 0){
-					connectiontype = 0;
-				}else if(cointype == 1){
-					connectiontype = 1;
-				}else if(cointype == 2){
-					connectiontype = 2;
-				}else{
-					connectiontype = 0;
-				}
-				
 				lock(DexConnectionList){
-					for(int i2=0;i2<DexConnectionList.Count;i2++){
-						if(DexConnectionList[i2].contype == connectiontype && DexConnectionList[i2].open == true){
-							dex = DexConnectionList[i2];
+					for(int i=0;i<DexConnectionList.Count;i++){
+						if(DexConnectionList[i].contype == 1 && DexConnectionList[i].open == true && DexConnectionList[i].blockchain_type == connectiontype){
+							dex = DexConnectionList[i];
 							break;
 						}
-					}				
+					}						
 				}
 				
 				if(dex == null){ return 0; }
@@ -2614,8 +2774,7 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 				return 0;
 			}else{
 				try {
-					int pos = (int)Math.Round(GetRandomNumber(1,NEBLNTP1List.Count))-1;
-					string nodeurl = NEBLNTP1List[pos]; //Currently only one node at this time
+					string nodeurl = NEBLAPI_server; //Currently only one node at this time
 					bool timeout;
 					
 					string response = "";
@@ -2711,27 +2870,18 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 		{
 			//This will return a JArray that can be parsed with row data containing
 			//Tx hash, Tx output number, Value and tokenID in case tokens exist
-			if(cointype == 1 || cointype == 2){
+			int connectiontype = GetWalletBlockchainType(cointype);
+			if(connectiontype != 0){
 				if(con == null){
 					//Find a dexconnection
-					int connectiontype = 0;
-					if(cointype == 0){
-						connectiontype = 0;
-					}else if(cointype == 1){
-						connectiontype = 1;
-					}else if(cointype == 2){
-						connectiontype = 2;
-					}else{
-						connectiontype = 0;
-					}
 					
 					lock(DexConnectionList){
-						for(int i2=0;i2<DexConnectionList.Count;i2++){
-							if(DexConnectionList[i2].contype == connectiontype && DexConnectionList[i2].open == true){
-								con = DexConnectionList[i2];
+						for(int i=0;i<DexConnectionList.Count;i++){
+							if(DexConnectionList[i].contype == 1 && DexConnectionList[i].open == true && DexConnectionList[i].blockchain_type == connectiontype){
+								con = DexConnectionList[i];
 								break;
 							}
-						}				
+						}						
 					}
 					
 					if(con == null){ return null; }
@@ -2782,8 +2932,7 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 				return null;
 			}else{
 				try {
-					int pos = (int)Math.Round(GetRandomNumber(1,NEBLNTP1List.Count))-1;
-					string nodeurl = NEBLNTP1List[pos]; //Currently only one node at this time
+					string nodeurl = NEBLAPI_server; //Currently only one node at this time
 					bool timeout;
 					string response = "";
 					JObject result = null;
@@ -2881,6 +3030,7 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 			
 			for(int i = 0;i < WalletList.Count;i++){
 				if(WalletList[i].status == 0){
+					if(WalletList[i].blockchaintype == 6){continue;} //Ethereum doesn't need to be consolidated
 					//Wallet must be available for use
 					JArray utxo = GetAddressUnspentTX(null,WalletList[i].type,WalletList[i].address);
 					if(utxo != null){
@@ -2888,7 +3038,7 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 						bool mixed_unspent = false;
 						foreach (JToken row in utxo)
 						{
-							if(WalletList[i].type == 1 || WalletList[i].type == 2){
+							if(WalletList[i].blockchaintype != 0){
 								total_utxo++;
 							}else{
 								//We need to account for the token type
@@ -2935,26 +3085,22 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 		public static int TransactionConfirmations(int cointype, string txhash)
 		{
 			//We used to use the ref_address to get the confirmations amount, now we don't
-			if(cointype == 1 || cointype == 2){
-				DexConnection con=null;
-				int connectiontype = 0;
-				if(cointype == 0){
-					connectiontype = 0;
-				}else if(cointype == 1){
-					connectiontype = 1;
-				}else if(cointype == 2){
-					connectiontype = 2;
-				}else{
-					connectiontype = 0;
+			int connectiontype = GetWalletBlockchainType(cointype);
+			if(connectiontype != 0){
+				if(connectiontype == 6){
+					//This is an ethereum transaction
+					return EthereumTransactionConfirmations(txhash);
 				}
+								
+				DexConnection con=null;
 				
 				lock(DexConnectionList){
-					for(int i2=0;i2<DexConnectionList.Count;i2++){
-						if(DexConnectionList[i2].contype == connectiontype && DexConnectionList[i2].open == true){
-							con = DexConnectionList[i2];
+					for(int i=0;i<DexConnectionList.Count;i++){
+						if(DexConnectionList[i].contype == 1 && DexConnectionList[i].open == true && DexConnectionList[i].blockchain_type == connectiontype){
+							con = DexConnectionList[i];
 							break;
 						}
-					}
+					}						
 				}
 				
 				if(con == null){return -1;}
@@ -3005,8 +3151,7 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 				return confirmations;
 			}else{
 				try {
-					int pos = (int)Math.Round(GetRandomNumber(1,NEBLNTP1List.Count))-1;
-					string nodeurl = NEBLNTP1List[pos]; //Currently only one node at this time
+					string nodeurl = NEBLAPI_server; //Currently only one node at this time
 					bool timeout;
 					string response = "";
 					JObject result = null;
@@ -3061,96 +3206,6 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 				return -1;				
 			}
 		}
-		
-		//Function to confirm the tokens inside a transaction
-		public static int ConfirmTokenTransactionTransfer(int cointype,string txhash,string receive_add,int amount)
-		{
-			//This will search the posted transaction for the balance to the right address
-			//Return -1 = Cannot determine
-			//Return 0 = Balance incorrect
-			//Return 1 = Balance correct
-			if(cointype < 3){return -1;} //Cannot run function for non-tokens
-			try {
-				int pos = (int)Math.Round(GetRandomNumber(1,NEBLNTP1List.Count))-1;
-				string nodeurl = NEBLNTP1List[pos]; //Currently only one node at this time
-				bool timeout;
-				string response = "";
-				JObject result = null;
-				if(using_blockhelper == false){
-					if(using_cnblockhelper == false){
-						response = HttpRequest(nodeurl+"/ntp1/transactioninfo/"+txhash,"",out timeout);
-						if(response.Length == 0){return -1;}
-						result = JObject.Parse(response);
-						if(result["code"] != null){return -1;} //Unable to make a determination
-					}else{
-						//Querying the CN for Tx information
-						JObject req = new JObject();
-						req["cn.method"] = "blockhelper.gettransactioninfo";
-						req["cn.response"] = 0;
-						req["cn.txhash"] = txhash;
-						response = SendBlockHelperMessage(req,false);
-						if(response.Length == 0){return -1;}
-						result = JObject.Parse(response);
-						if(result["cn.result"] == null){
-							//This means transaction not found on blockchain (could be too early)
-							NebliDexNetLog("Unable to obtain the transaction hash "+txhash+", error: "+result["cn.error"].ToString());
-							return 0;
-						}
-						result = (JObject)result["cn.result"];
-					}
-				}else{
-					//Querying our own blockhelper for information
-					JObject req = new JObject();
-					req["rpc.method"] = "rpc.gettransactioninfo";
-					req["rpc.response"] = 0;
-					req["rpc.txhash"] = txhash;
-					response = SendBlockHelperMessage(req,true);
-					if(response.Length == 0){return -1;}
-					result = JObject.Parse(response);
-					if(result["rpc.result"] == null){
-						//This means transaction not found on blockchain (could be too early)
-						NebliDexNetLog("Unable to obtain the transaction hash "+txhash+", error: "+result["rpc.error"].ToString());
-						return 0;
-					}
-					result = (JObject)result["rpc.result"];
-				}
-					
-				//Now scan the json for the receive address
-				foreach (JToken vout in result["vout"])
-				{
-					JToken scriptkey = vout["scriptPubKey"];
-					bool receive_present = false;
-					if(scriptkey["addresses"] != null){
-						foreach (JToken out_add in scriptkey["addresses"])
-						{
-							if(receive_add.Equals(out_add.ToString()) == true){
-								receive_present = true;
-							}
-						}
-						
-						if(receive_present == true){
-							//Now look for the token
-							string tokenid = GetWalletTokenID(cointype);
-							foreach (JToken token in vout["tokens"])
-							{
-								if(token["tokenId"].ToString() == tokenid){
-									//Found the token, check the amount
-									int tok_amount = Convert.ToInt32(token["amount"].ToString());
-									if(tok_amount >= amount){
-										//Amount is good, return 1
-										return 1;
-									}
-								}
-							}							
-						}
-					}
-				}
-				return 0;
-			} catch (Exception e) {
-				NebliDexNetLog("Failed to parse NTP1 data: "+e.ToString());
-			}
-			return -1;
-		}
 				
 		//Transaction to Database easy functions
 		public static void AddValidatingTransaction(JObject databasejs)
@@ -3189,120 +3244,7 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 			
 			mycon.Close();
 		}
-		
-		public static bool AddAuditingTransaction(DexConnection con, JObject js)
-		{
-			
-			//Get the pubkey
-			string pubkey = "";
-			lock(CN_Nodes_By_IP){
-				foreach(string cn_ip in CN_Nodes_By_IP.Keys)
-				{
-					if(cn_ip.Equals(con.ip_address[0]) == true){ //Do not want same IP address
-						pubkey = cn_ip;break;
-					}
-				}
-			}
-			
-			if(pubkey.Length == 0){return false;} //Couldn't find this validator
-			
-			//Now verify if the pubkey for the maker and taker receive address match the redeemscript
-			string maker_pubkey = js["cn.auditing_mpubkey"].ToString();
-			string taker_pubkey = js["cn.auditing_tpubkey"].ToString();
-			string order_nonce = js["cn.auditing_nonce"].ToString();
-			string maker_receive="";
-			string taker_send="";
-			
-			OrderRequest req=null;
-			lock(OrderRequestList){
-				for(int i = 0;i < OrderRequestList.Count;i++){
-					if(OrderRequestList[i].order_nonce_ref.Equals(order_nonce) == true && OrderRequestList[i].order_stage < 3){
-						req = OrderRequestList[i];break;
-					}
-				}
-			}
-			if(req == null){return false;}
-			
-			//Derive maker ande taker receive address from the pubkey
-			int redeemscript_wallet=0;
-			if(req.type == 0){
-				//Taker is buying so maker wallet is base wallet
-				redeemscript_wallet = MarketList[req.market].base_wallet; //Maker receive wallet
-				//wallet1 = MarketList[req.market].base_wallet; //Maker receive wallet
-				//wallet2 = MarketList[req.market].trade_wallet; //Taker receive wallet
-			}else{
-				redeemscript_wallet = MarketList[req.market].trade_wallet; //Maker receive wallet
-				//wallet1 = MarketList[req.market].trade_wallet;
-				//wallet2 = MarketList[req.market].base_wallet;
-			}
-			
-			lock(transactionLock){
-				//Get Maker Address
-				Network my_net;
-				if(testnet_mode == false){
-					my_net = Network.Main;
-				}else{
-					my_net = Network.TestNet;
-				}
-				ChangeVersionByte(redeemscript_wallet,ref my_net);
-				PubKey pub = new PubKey(maker_pubkey);
-				maker_receive = pub.GetAddress(my_net).ToString();
 				
-				//Get Taker Address
-				pub = new PubKey(taker_pubkey);
-				taker_send = pub.GetAddress(my_net).ToString();
-			}
-			
-			//These addresses should match the request addresses
-			if(maker_receive != req.to_add_1){return false;}
-			if(taker_send != req.from_add_1){return false;}
-			
-			//Now check redeem script and make sure both addresses are found in it
-			string redeem_script_string = js["cn.auditing_redeemscript"].ToString();
-			int pos = redeem_script_string.IndexOf(maker_pubkey);
-			if(pos < 0){return false;}
-			pos = redeem_script_string.IndexOf(taker_pubkey);
-			if(pos < 0){return false;}
-			
-			//These checks above are done to make sure that the validation node doesn't send the wrong redeemscript
-
-			//This will add a database entry to the validating transactions database
-			SQLiteConnection mycon = new SQLiteConnection("Data Source=\""+App.App_Path+"/data/neblidex.db\";Version=3;");
-			mycon.Open();
-			
-			//Set our busy timeout, so we wait if there are locks present
-			SQLiteCommand statement = new SQLiteCommand("PRAGMA busy_timeout = 5000",mycon); //Create a transaction to make inserts faster
-			statement.ExecuteNonQuery();
-			statement.Dispose();
-			
-			//Add certain values to the database
-			string myquery = "Insert Into VALIDATING_TRANSACTIONS (utctime, order_nonce_ref, maker_pubkey, taker_pubkey, custodial_privkey,";
-			myquery += " maker_txhash, status, claimed, redeemscript, redeemscript_add, validating_cn_pubkey, rbalance, waittime, market, reqtype, ndex_fee,";
-			myquery += " maker_sendamount, taker_receive_add)";
-			myquery += " Values (@time, @nonce, @mkey, @tkey, @cprivkey, @mtxh, 6, 0, @redeem, @redeem_add, @cnpubkey, @rbal, -1, @mark, @reqt, @fee, @makesend, @takeadd);";
-			statement = new SQLiteCommand(myquery,mycon);
-			statement.Parameters.AddWithValue("@time",Convert.ToInt32(js["cn.auditing_time"].ToString()));
-			statement.Parameters.AddWithValue("@nonce",js["cn.auditing_nonce"].ToString());
-			statement.Parameters.AddWithValue("@mkey",js["cn.auditing_mpubkey"].ToString());
-			statement.Parameters.AddWithValue("@tkey",js["cn.auditing_tpubkey"].ToString());
-			statement.Parameters.AddWithValue("@cprivkey",js["cn.auditing_custodial_key"].ToString());
-			statement.Parameters.AddWithValue("@mtxh",js["cn.auditing_mtxhash"].ToString());
-			statement.Parameters.AddWithValue("@redeem",js["cn.auditing_redeemscript"].ToString());
-			statement.Parameters.AddWithValue("@redeem_add",js["cn.auditing_redeemscript_add"].ToString());
-			statement.Parameters.AddWithValue("@cnpubkey",pubkey);
-			statement.Parameters.AddWithValue("@rbal",js["cn.auditing_rbalance"].ToString());
-			statement.Parameters.AddWithValue("@mark",req.market);
-			statement.Parameters.AddWithValue("@reqt",req.type);
-			statement.Parameters.AddWithValue("@fee",req.ndex_fee.ToString(CultureInfo.InvariantCulture));
-			statement.Parameters.AddWithValue("@makesend",js["cn.auditing_makesend"].ToString());
-			statement.Parameters.AddWithValue("@takeadd",js["cn.auditing_takeadd"].ToString());
-			statement.ExecuteNonQuery();
-			statement.Dispose();
-			
-			mycon.Close();
-			return true;
-		}
-		
 		public static string GetValidationData(string field,int time, string order_nonce)
 		{
 			//This will return data from the field matching the time and order_nonce
@@ -3614,8 +3556,7 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 			JObject result = null;
 			if(using_blockhelper == false){
 				if(using_cnblockhelper == false){
-					int pos = (int)Math.Round(GetRandomNumber(1,NEBLNTP1List.Count))-1;
-					string nodeurl = NEBLNTP1List[pos];
+					string nodeurl = NEBLAPI_server;
 					bool timeout;
 					response = HttpRequest(nodeurl+"/ntp1/addressinfo/"+from_add,"",out timeout);
 					if(response.Length == 0){return null;}
@@ -4095,13 +4036,24 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 			//transaction locktime is greater than median time of last 11 blocks. They do not use the current time.
 			//This method returns the expected current time the transaction would be included based on a locktime
 			uint blockchain_seconds = 30; //Neblio is 30 second blocktimes
-			if(cointype == 1){
-				//Bitcoin
+			int blockchain_type = GetWalletBlockchainType(cointype);
+			if(blockchain_type == 1 || blockchain_type == 4){
+				//Bitcoin and Bitcoin Cash
 				blockchain_seconds = 600; //10 Minutes
-			}else if(cointype == 2){
+			}else if(blockchain_type == 2){
+				//Litecoin
 				blockchain_seconds = 150; //2.5 minutes
+			}else if(blockchain_type == 3){
+				//Groestlcoin
+				blockchain_seconds = 60; //1 minute
+			}else if(blockchain_type == 5){
+				//Monacoin
+				blockchain_seconds = 90; //1.5 minutes
+			}else if(blockchain_type == 6){
+				//Ethereum
+				blockchain_seconds = 15; //15 seconds
 			}
-			uint wait_time = blockchain_seconds * 6; //3 minutes, 15 minutes or 60 minutes
+			uint wait_time = blockchain_seconds * 6;
 			return unlock_time + wait_time;
 		}
 		
@@ -4133,30 +4085,25 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 		}
 		
 		public static string GetAtomicSwapSecret(int cointype,string address,string secrethash_hex)
-		{		
+		{	
 			//This method will search the blockchain and find a hex array value that will hash sha256 to secrethash
 			byte[] secrethash = ConvertHexStringToByteArray(secrethash_hex);
-			if(cointype == 1 || cointype == 2){
-				DexConnection dex = null;
-				
-				int connectiontype = 0;
-				if(cointype == 0){
-					connectiontype = 0;
-				}else if(cointype == 1){
-					connectiontype = 1;
-				}else if(cointype == 2){
-					connectiontype = 2;
-				}else{
-					connectiontype = 0;
+			int connectiontype = GetWalletBlockchainType(cointype);
+			if(connectiontype != 0){
+				if(connectiontype == 6){
+					//Ethereum has its own method to grab the secret
+					return GetEthereumAtomicSwapSecret(secrethash_hex);
 				}
 				
+				DexConnection dex = null;
+
 				lock(DexConnectionList){
-					for(int i2=0;i2<DexConnectionList.Count;i2++){
-						if(DexConnectionList[i2].contype == connectiontype && DexConnectionList[i2].open == true){
-							dex = DexConnectionList[i2];
+					for(int i=0;i<DexConnectionList.Count;i++){
+						if(DexConnectionList[i].contype == 1 && DexConnectionList[i].open == true && DexConnectionList[i].blockchain_type == connectiontype){
+							dex = DexConnectionList[i];
 							break;
 						}
-					}				
+					}						
 				}
 				
 				if(dex == null){ return ""; }
@@ -4241,8 +4188,7 @@ public static Transaction CreateAtomicSwapP2SHTx(int wallet, string swap_add,str
 					JObject result = null;
 					if(using_blockhelper == false){
 						if(using_cnblockhelper == false){
-							int pos = (int)Math.Round(GetRandomNumber(1,NEBLNTP1List.Count))-1;
-							string nodeurl = NEBLNTP1List[pos]; //Currently only one node at this time
+							string nodeurl = NEBLAPI_server; //Currently only one node at this time
 							bool timeout;
 							response = HttpRequest(nodeurl+"/ins/addr/"+address,"",out timeout);
 							if(response.Length == 0){return "";}

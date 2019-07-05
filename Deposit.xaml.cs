@@ -55,6 +55,9 @@ namespace NebliDex
 			for(int i = 0;i < App.WalletList.Count;i++){
 				if(App.WalletList[i].Coin == which_coin){
 					addre = App.WalletList[i].address;
+					if(App.WalletList[i].blockchaintype == 4){ //If Bitcoin Cash
+						addre = SharpCashAddr.Converter.ToCashAddress(addre); //Show the cash address for deposits
+					}
 					break;
 				}
 			}
