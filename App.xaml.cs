@@ -2930,7 +2930,7 @@ namespace NebliDex
 			}
 			return "";
 		}
-		
+
 		public static int GetWalletBlockchainType(int type)
 		{
 			//This will return the blockchain type of the selected wallet type
