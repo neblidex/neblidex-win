@@ -502,7 +502,7 @@ namespace NebliDex
 					//We are sending to a multisig wallet, so send some extra to cover the eventual transfer
 					//We must also agree to pay extra for the multsig
 					//We will use a fee that estimates based on the average multsig out transaction of 400 bytes
-					decimal multisig_fee = Decimal.Multiply(600,fee_per_byte);
+					decimal multisig_fee = Decimal.Multiply(400,fee_per_byte);
 					if(amount < blockchain_fee[connectiontype]*2){
 						//We are sending a small amount
 						multisig_fee = multisig_fee*2; //Double the fee
@@ -1570,7 +1570,6 @@ namespace NebliDex
 							int contract_locktime = Convert.ToInt32(table.Rows[i]["atomic_unlock_time"].ToString());
 							int maker_inclusion_time = Convert.ToInt32(GetBlockInclusionTime(maker_cointype,0));
 							int canceltime = contract_locktime - maker_inclusion_time - max_transaction_wait / 2; //Will cancel the waiting if waited past maker locktime
-							NebliDexNetLog("Waiting for maker contract "+maker_contract_add+" to fund");
 							
 							int blockchain_type = GetWalletBlockchainType(maker_cointype);	
 							decimal expected_balance = Convert.ToDecimal(table.Rows[i]["receive_amount"].ToString(),CultureInfo.InvariantCulture);
@@ -1578,7 +1577,8 @@ namespace NebliDex
 							bool balance_ok = false;
 							bool receiving_eth = false;
 
-							if(blockchain_type != 6){							
+							if(blockchain_type != 6){
+								NebliDexNetLog("Waiting for maker contract "+maker_contract_add+" to fund");								
 								decimal balance = 0;
 								if(maker_contract_add.Length > 0){
 									balance = GetBlockchainAddressBalance(maker_cointype,maker_contract_add,false);
@@ -1603,6 +1603,9 @@ namespace NebliDex
 											balance_ok = false;
 										}
 									}else{
+										//Make the fee calculation more flexible as some clients assume different fees
+										estimate_fee = estimate_fee / 10m;
+										
 										if(balance - expected_balance - estimate_fee < 0){
 											//Not enough balance to cover amount and fee
 											NebliDexNetLog("Maker contract balance not enough to pay for fees");
@@ -1612,6 +1615,7 @@ namespace NebliDex
 								}
 							}else{
 								//We will check the Ethereum contract for a balance
+								NebliDexNetLog("Waiting for maker to pay ethereum contract");
 								string secret_hash = table.Rows[i]["atomic_secret_hash"].ToString();
 								balance_ok = VerifyBlockchainEthereumAtomicSwap(secret_hash,expected_balance,GetWalletAddress(maker_cointype),canceltime);
 								receiving_eth = true;
@@ -1714,6 +1718,9 @@ namespace NebliDex
 											balance_ok = false;
 										}
 									}else{
+										//Make the fee calculation more flexible as some clients assume different fees
+										estimate_fee = estimate_fee / 10m;
+										
 										if(balance - expected_balance - estimate_fee < 0){
 											//Not enough balance to cover amount and fee
 											NebliDexNetLog("Taker contract balance not enough to pay for fees");
