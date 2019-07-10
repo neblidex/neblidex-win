@@ -1110,8 +1110,6 @@ namespace NebliDex
 					
 					bool success = RemoveElectrumServer(f_index,electrum_info[0]);
 					if(success == false){
-						File.Delete(App_Path+"/data/electrum_peers.dat"); //Remove the electrum_peers
-						NebliDexNetLog("All electrum servers are down, unable to connect");
 						//The program will redownload the list on the next connect
 						break; //Will try again next loop
 					}
