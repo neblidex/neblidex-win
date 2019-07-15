@@ -387,19 +387,25 @@ namespace NebliDex
 				int base_wallet_blockchaintype = App.GetWalletBlockchainType(App.MarketList[App.exchange_market].base_wallet);
 				
 				//Update Status Bar Fees
-				if(trade_wallet_blockchaintype != 0){
-					if(trade_wallet_blockchaintype == 6){
-						NEBL_Fee.Content = App.MarketList[App.exchange_market].trade_symbol+" Fee: "+String.Format(CultureInfo.InvariantCulture,"{0:0.##}",Math.Round(App.blockchain_fee[trade_wallet_blockchaintype],2))+" Gwei";
-					}else{
-						NEBL_Fee.Content = App.MarketList[App.exchange_market].trade_symbol+" Fee: "+String.Format(CultureInfo.InvariantCulture,"{0:0.########}",Math.Round(App.blockchain_fee[trade_wallet_blockchaintype],8))+"/kb";
-					}
-				}else{
+				if(trade_wallet_blockchaintype == 0){
 					NEBL_Fee.Content = "NEBL Fee: "+String.Format(CultureInfo.InvariantCulture,"{0:0.########}",Math.Round(App.blockchain_fee[trade_wallet_blockchaintype],8))+"/kb";
+				}else if(trade_wallet_blockchaintype == 6){
+					NEBL_Fee.Content = "ETH Fee: "+String.Format(CultureInfo.InvariantCulture,"{0:0.##}",Math.Round(App.blockchain_fee[trade_wallet_blockchaintype],2))+" Gwei";
+				}else{
+					NEBL_Fee.Content = App.MarketList[App.exchange_market].trade_symbol+" Fee: "+String.Format(CultureInfo.InvariantCulture,"{0:0.########}",Math.Round(App.blockchain_fee[trade_wallet_blockchaintype],8))+"/kb";
 				}
+				
 				if(trade_wallet_blockchaintype != base_wallet_blockchaintype){
 					//Show both the trade and base fees
 					Base_Pair_Separator.Visibility = Visibility.Visible;
-					Base_Pair_Fee.Content = App.MarketList[App.exchange_market].base_symbol+" Fee: "+String.Format(CultureInfo.InvariantCulture,"{0:0.########}",Math.Round(App.blockchain_fee[base_wallet_blockchaintype],8))+"/kb";
+					if(base_wallet_blockchaintype == 0){
+						Base_Pair_Fee.Content = "NEBL Fee: "+String.Format(CultureInfo.InvariantCulture,"{0:0.########}",Math.Round(App.blockchain_fee[base_wallet_blockchaintype],8))+"/kb";
+					}else if(base_wallet_blockchaintype == 6){
+						//ETH Market
+						Base_Pair_Fee.Content = "ETH Fee: "+String.Format(CultureInfo.InvariantCulture,"{0:0.########}",Math.Round(App.blockchain_fee[base_wallet_blockchaintype],2))+" Gwei";						
+					}else{
+						Base_Pair_Fee.Content = App.MarketList[App.exchange_market].base_symbol+" Fee: "+String.Format(CultureInfo.InvariantCulture,"{0:0.########}",Math.Round(App.blockchain_fee[base_wallet_blockchaintype],8))+"/kb";
+					}
 				}else{
 					//Only show the trade fee as they use the same blockchaintype
 					Base_Pair_Fee.Content = "";
@@ -432,7 +438,7 @@ namespace NebliDex
 				//We are going to alphabetically sort the marketlist
 				bool not_found = true;
 				for(int i2 = 0;i2 < Market_Box.Items.Count;i2++){
-					string item_detail = (string)Market_Box.Items[i2];
+					string item_detail = (string)Market_Box.Items[i2];			
 					int compare = String.Compare(format_market,item_detail,true);
 					if(compare < 0){
 						not_found = false;
