@@ -54,14 +54,14 @@ namespace NebliDex
 		public static bool critical_node = false; //Not critical node by default
 		public static bool critical_node_pending = false; //This is for a node that is just connecting to the network (it cannot relay).
 		public static int critical_node_port = 55364; //This is our critical node port < 65000
-		public static int cn_ndex_minimum = 39000; //39,000 The amount required to become a critical node
+		public static int cn_ndex_minimum = 39000; //The amount required to become a critical node
 		public static int cn_num_validating_tx = 0; //The amount of transactions being validated by the CN
 		public static string my_external_ip = ""; //Cache our IP address
 		
 		public static string Default_DNS_SEED = "https://neblidex.xyz/seed"; //The default seed, returns IP list of CNs
 		public static string DNS_SEED = Default_DNS_SEED;
 		public static int DNS_SEED_TYPE = 0; //Http protocol, 1 = Direct IP
-		public static int wlan_mode = 2; //0 = Internet, 1 = WLAN, 2 = Localhost (This is for CN IP addresses returned)
+		public static int wlan_mode = 0; //0 = Internet, 1 = WLAN, 2 = Localhost (This is for CN IP addresses returned)
 		
 		public static int exchange_market = 2; //NDEX/NEBL
 		public static int total_markets = 37;
