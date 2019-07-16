@@ -1303,6 +1303,7 @@ namespace NebliDex
 		{
 			Decimal gas_price = GetBlockchainEthereumGas();
 			if(gas_price > 0){
+				gas_price = gas_price * 1.5m; //Make our transactions higher priority than normal ETH transactions
 				Decimal gas_price_diff = gas_price - blockchain_fee[6];
 				blockchain_fee[6] = Math.Round(blockchain_fee[6] + gas_price_diff/5m,2); //Modify the gas prices by small amounts
 			}
