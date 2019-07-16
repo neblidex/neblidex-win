@@ -47,21 +47,21 @@ namespace NebliDex
 		//Added 2 new wallets for stablecoins USDC, DAI based on ERC20 standard		
 		//NDEX/GRS, NDEX/MONA, NDEX/DAI, NDEX/USDC, NDEX/BCH, NDEX/ETH
 		//NEBL/DAI, NEBL/USDC, LTC/DAI, LTC/USDC, BTC/DAI, BTC/USDC, BCH/DAI 
-		//GRS/DAI, MONA/USDC
+		//GRS/DAI, MONA/DAI
 		
 		public static string App_Path = AppDomain.CurrentDomain.BaseDirectory;
 
 		public static bool critical_node = false; //Not critical node by default
 		public static bool critical_node_pending = false; //This is for a node that is just connecting to the network (it cannot relay).
 		public static int critical_node_port = 55364; //This is our critical node port < 65000
-		public static int cn_ndex_minimum = 39000; //The amount required to become a critical node
+		public static int cn_ndex_minimum = 39000; //39,000 The amount required to become a critical node
 		public static int cn_num_validating_tx = 0; //The amount of transactions being validated by the CN
 		public static string my_external_ip = ""; //Cache our IP address
 		
 		public static string Default_DNS_SEED = "https://neblidex.xyz/seed"; //The default seed, returns IP list of CNs
 		public static string DNS_SEED = Default_DNS_SEED;
 		public static int DNS_SEED_TYPE = 0; //Http protocol, 1 = Direct IP
-		public static int wlan_mode = 0; //0 = Internet, 1 = WLAN, 2 = Localhost (This is for CN IP addresses returned)
+		public static int wlan_mode = 2; //0 = Internet, 1 = WLAN, 2 = Localhost (This is for CN IP addresses returned)
 		
 		public static int exchange_market = 2; //NDEX/NEBL
 		public static int total_markets = 37;
@@ -308,9 +308,9 @@ namespace NebliDex
 					base_wallet = 18;
 					trade_wallet = 14; //GRS
 				}else if(index == 36){
-					base_symbol = "USDC";
+					base_symbol = "DAI";
 					trade_symbol = "MONA";
-					base_wallet = 19;
+					base_wallet = 18;
 					trade_wallet = 16; //MONA
 				}
 			}
