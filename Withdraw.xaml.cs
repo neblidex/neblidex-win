@@ -7,6 +7,7 @@
  * To change this template use Tools | Options | Coding | Edit Standard Headers.
  */
 using System;
+using System.Numerics;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows;
@@ -110,8 +111,9 @@ namespace NebliDex
 					}
 				}else{
 					//Ethereum
-					if(amount <= App.GetEtherWithdrawalFee()){
-						MessageBox.Show("This amount is too small to send as it is lower than the gas fee","Notice!",MessageBoxButton.OK);
+					decimal eth_bal = App.GetWalletAmount(17);
+					if(eth_bal <= App.GetEtherWithdrawalFee(App.Wallet.CoinERC20(mywallet))){
+						MessageBox.Show("Your ETH balance is too small as it is lower than the gas fee to send this amount","Notice!",MessageBoxButton.OK);
 						return;						
 					}
 				}
@@ -158,7 +160,7 @@ namespace NebliDex
 			    	MessageBox.Show("Failed to create a transaction!");
 			    	Withdraw_Button.IsEnabled = true;
 			    }
-			}			
+			}		
 		}
 		
 		private bool PerformWithdrawal(int wallet, decimal amount, string des)
@@ -176,8 +178,18 @@ namespace NebliDex
 				}
 			}else{
 				//This is Ethereum transaction out
-				//This function will estimate the gas used if sending to a contract
-				Nethereum.Signer.TransactionChainId tx = App.CreateSignedEthereumTransaction(des,amount,false,0,"");
+				
+				Nethereum.Signer.TransactionChainId tx = null;
+				if(App.Wallet.CoinERC20(wallet) == true){
+					//ERC20 tokens only move amounts around at a specific contract, tokens are stored in the contract but allocated to the address
+					string token_contract = App.GetWalletERC20TokenContract(wallet);
+					BigInteger int_amount = App.ConvertToERC20Int(amount,App.GetWalletERC20TokenDecimals(wallet));
+					string transfer_data = App.GenerateEthereumERC20TransferData(des,int_amount);
+					tx = App.CreateSignedEthereumTransaction(wallet,token_contract,amount,false,0,transfer_data);
+				}else{
+					//This function will estimate the gas used if sending to a contract
+					tx = App.CreateSignedEthereumTransaction(wallet,des,amount,false,0,"");
+				}
 				//Then add to database
 				if(tx!=null){
 					//Broadcast this transaction, and write to log regardless of whether it returns a hash or not
