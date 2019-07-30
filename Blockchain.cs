@@ -1700,6 +1700,19 @@ namespace NebliDex
 							int canceltime = Convert.ToInt32(table.Rows[i]["atomic_unlock_time"].ToString()); //Will cancel if taker doesn't pay in time
 							decimal expected_balance = Convert.ToDecimal(table.Rows[i]["receive_amount"].ToString(),CultureInfo.InvariantCulture);
 							
+							//This is information stored in cases of failed broadcast
+							//Will attempt to rebroadcast same hex if not sure if broadcast was successful
+							string maker_txinfo = table.Rows[i]["txhash"].ToString(); //This should normally be an empty string							
+							string maker_txhash = "";
+							string maker_txhex = "";
+							int maker_txconf = 0;
+							if(maker_txinfo.Length > 0){
+								JObject txinfo = JObject.Parse(maker_txinfo);
+								maker_txhex = txinfo["hex"].ToString();
+								maker_txhash = txinfo["hash"].ToString();
+								maker_txconf = TransactionConfirmations(cointype,maker_txhash);
+							}
+							
 							bool balance_ok = false;
 							
 							if(blockchain_type != 6){
@@ -1752,92 +1765,106 @@ namespace NebliDex
 							}
 							
 							myquery = "Update MYTRANSACTIONS Set waittime = @time Where nindex = @index;";
-							if(UTCTime() > canceltime){
-								NebliDexNetLog("Maker closing trade due to lack of balance in taker contract. Maker also closing order.");
-								//Waiting too long, cancel this trade completely and since we haven't sent anything to the contract, no worries
-								//Wallet will be available again to use however trade status will still remains as pending
-								myquery = "Update MYTRANSACTIONS Set waittime = @time, type = 3 Where nindex = @index;";
-								UpdateWalletStatus(cointype,0); //Unlock maker account from sending
-								string tradehx_index = table.Rows[i]["atomic_secret_hash"].ToString();
-								UpdateMyRecentTrade(tradehx_index,2); //Cancel this trade completely
-								
-								//For extra security, also close the order
-								OpenOrder myord = null;
-								lock(MyOpenOrderList){
-									for(int i2=0;i2 < MyOpenOrderList.Count;i2++){
-										if(MyOpenOrderList[i2].order_nonce == table.Rows[i]["order_nonce_ref"].ToString() && MyOpenOrderList[i2].is_request == false){
-											myord = MyOpenOrderList[i2];
-											break;
+							if(maker_txconf == 0){ //Maker transaction hasn't confirmed yet (probably not sent yet)
+								if(UTCTime() > canceltime){
+									NebliDexNetLog("Maker closing trade due to lack of balance in taker contract. Maker also closing order.");
+									//Waiting too long, cancel this trade completely and since we haven't sent anything to the contract, no worries
+									//Wallet will be available again to use however trade status will still remains as pending
+									myquery = "Update MYTRANSACTIONS Set waittime = @time, type = 3, txhash = '' Where nindex = @index;";
+									UpdateWalletStatus(cointype,0); //Unlock maker account from sending
+									string tradehx_index = table.Rows[i]["atomic_secret_hash"].ToString();
+									UpdateMyRecentTrade(tradehx_index,2); //Cancel this trade completely
+									
+									//For extra security, also close the order
+									OpenOrder myord = null;
+									lock(MyOpenOrderList){
+										for(int i2=0;i2 < MyOpenOrderList.Count;i2++){
+											if(MyOpenOrderList[i2].order_nonce == table.Rows[i]["order_nonce_ref"].ToString() && MyOpenOrderList[i2].is_request == false){
+												myord = MyOpenOrderList[i2];
+												break;
+											}
 										}
 									}
-								}
-								if(myord != null){
-									CancelMyOrder(myord);
-								}
-								
-							}else if(balance_ok == true){
-								//Taker has paid and with enough fees as well
-								NebliDexNetLog("Taker has funded taker contract, attempting to broadcast to maker contract");
-								
-								//Now put funds into maker contract
-								string destination_add = table.Rows[i]["to_add"].ToString();
-								decimal sendamount = Convert.ToDecimal(table.Rows[i]["amount"].ToString(),CultureInfo.InvariantCulture);
-								
-								decimal extra_neb = 0;
-								int taker_blockchain = GetWalletBlockchainType(taker_cointype);
-								int maker_blockchain = GetWalletBlockchainType(cointype);
-								if(taker_blockchain != 0 && cointype == 3){
-									//I'm sending NDEX and taker is sending BTC or LTC, give extra neblio for spending
-									extra_neb = blockchain_fee[0]*12;
-								}
-								Transaction tx = null;
-								Nethereum.Signer.TransactionChainId eth_tx = null;
-								string calculated_txhash = "";
-								if(maker_blockchain != 6){
-									tx = CreateSignedP2PKHTx(cointype,sendamount,destination_add,false,true,"",0,extra_neb,true);
-								}else{
-									//We are sending ethereum into the contract
-									string secret_hash = table.Rows[i]["atomic_secret_hash"].ToString();
-									if(Wallet.CoinERC20(cointype) == false){
-										string open_data = GenerateEthereumAtomicSwapOpenData(secret_hash,destination_add,canceltime); //With our parameters
-										eth_tx = CreateSignedEthereumTransaction(cointype,ETH_ATOMICSWAP_ADDRESS,sendamount,true,1,open_data);
-									}else{
-										//Sending ERC20 to contract, we already have this amount approved via approval transaction
-										BigInteger int_sendamount = ConvertToERC20Int(sendamount,GetWalletERC20TokenDecimals(cointype));
-										string token_contract = GetWalletERC20TokenContract(cointype);
-										string open_data = GenerateERC20AtomicSwapOpenData(secret_hash,int_sendamount,token_contract,destination_add,canceltime);
-										eth_tx = CreateSignedEthereumTransaction(cointype,ERC20_ATOMICSWAP_ADDRESS,sendamount,true,1,open_data);
+									if(myord != null){
+										CancelMyOrder(myord);
 									}
-								}
-								if(tx != null || eth_tx != null){
-									//Prepare for transaction broadcast									
-									int reqtime = Convert.ToInt32(table.Rows[i]["req_utctime_ref"].ToString());
-									string txhex;
-									if(tx != null){
-										calculated_txhash = tx.GetHash().ToString();
-										txhex = tx.ToHex();
-									}else{
-										calculated_txhash = eth_tx.HashID;
-										txhex = eth_tx.Signed_Hex;
-									}
-									SetMyTransactionData("txhash",calculated_txhash,reqtime,table.Rows[i]["order_nonce_ref"].ToString()); //Update txhash
-									SetMyTransactionData("type",1,reqtime,table.Rows[i]["order_nonce_ref"].ToString());
-															
-									NebliDexNetLog("Maker paid to maker contract: "+destination_add);
-									//Now wait for spending transaction from maker contract
-									myquery = "Update MYTRANSACTIONS Set waittime = @time, type = 1 Where nindex = @index;";
 									
-									UpdateWalletStatus(cointype,2); //Lock maker funds as maker is now in contract	
-					                
-									//The reason why we must assume broadcast is successful is if there is a catastrophic power failure after broadcast
-									//We can at least monitor the expected transaction
-									//Now broadcast this transaction
-									bool timeout;	
-									string txhash = TransactionBroadcast(cointype,txhex,out timeout);
-									if(txhash.Length == 0 || timeout == true){
-										NebliDexNetLog("Failed to broadcast transaction to maker contract but monitor anyway in case.");
-									}																			
+								}else if(balance_ok == true){
+									//Taker has paid and with enough fees as well
+									NebliDexNetLog("Taker has funded taker contract, attempting to broadcast to maker contract");
+									
+									//Now put funds into maker contract
+									string destination_add = table.Rows[i]["to_add"].ToString();
+									decimal sendamount = Convert.ToDecimal(table.Rows[i]["amount"].ToString(),CultureInfo.InvariantCulture);
+									
+									decimal extra_neb = 0;
+									int taker_blockchain = GetWalletBlockchainType(taker_cointype);
+									int maker_blockchain = GetWalletBlockchainType(cointype);
+									if(taker_blockchain != 0 && cointype == 3){
+										//I'm sending NDEX and taker is sending BTC or LTC, give extra neblio for spending
+										extra_neb = blockchain_fee[0]*12;
+									}
+									Transaction tx = null;
+									Nethereum.Signer.TransactionChainId eth_tx = null;
+									string calculated_txhash = "";
+									if(maker_txhex.Length == 0){ //Only if maker hasn't tried to send transation before
+										if(maker_blockchain != 6){
+											tx = CreateSignedP2PKHTx(cointype,sendamount,destination_add,false,true,"",0,extra_neb,true);
+										}else{
+											//We are sending ethereum into the contract
+											string secret_hash = table.Rows[i]["atomic_secret_hash"].ToString();
+											if(Wallet.CoinERC20(cointype) == false){
+												string open_data = GenerateEthereumAtomicSwapOpenData(secret_hash,destination_add,canceltime); //With our parameters
+												eth_tx = CreateSignedEthereumTransaction(cointype,ETH_ATOMICSWAP_ADDRESS,sendamount,true,1,open_data);
+											}else{
+												//Sending ERC20 to contract, we already have this amount approved via approval transaction
+												BigInteger int_sendamount = ConvertToERC20Int(sendamount,GetWalletERC20TokenDecimals(cointype));
+												string token_contract = GetWalletERC20TokenContract(cointype);
+												string open_data = GenerateERC20AtomicSwapOpenData(secret_hash,int_sendamount,token_contract,destination_add,canceltime);
+												eth_tx = CreateSignedEthereumTransaction(cointype,ERC20_ATOMICSWAP_ADDRESS,sendamount,true,1,open_data);
+											}
+										}
+									}
+									if(tx != null || eth_tx != null || maker_txhex.Length > 0){
+										//Prepare for transaction broadcast									
+										int reqtime = Convert.ToInt32(table.Rows[i]["req_utctime_ref"].ToString());
+										string txhex;
+										if(tx != null){
+											calculated_txhash = tx.GetHash().ToString();
+											txhex = tx.ToHex();
+										}else if(eth_tx != null){
+											calculated_txhash = eth_tx.HashID;
+											txhex = eth_tx.Signed_Hex;
+										}else{
+											calculated_txhash = maker_txhash;
+											txhex = maker_txhex;
+											//Resend the same data to a different node than last
+										}
+										//Temporarily store both the transaction hash and raw hex in this column as JObject
+										JObject txinfo = new JObject();
+										txinfo["hash"] = calculated_txhash;
+										txinfo["hex"] = txhex;
+										SetMyTransactionData("txhash",JsonConvert.SerializeObject(txinfo),reqtime,table.Rows[i]["order_nonce_ref"].ToString()); //Update txhash
+										bool timeout;	
+										string txhash = TransactionBroadcast(cointype,txhex,out timeout);
+										//Even if a power failure happens here, we will be able to switch over to monitoring tx on next boot up
+										if(txhash.Length > 0){
+											//This was broadcasted ok
+											NebliDexNetLog("Maker paid to maker contract: "+destination_add);
+											//Now wait for spending transaction from maker contract
+											myquery = "Update MYTRANSACTIONS Set waittime = @time, type = 1, txhash = '"+calculated_txhash+"' Where nindex = @index;";
+											
+											UpdateWalletStatus(cointype,2); //Lock maker funds as maker is now in contract	
+										}else{
+											NebliDexNetLog("Failed to broadcast transaction to maker contract, will try again.");
+										}																		
+									}
 								}
+							}else if(maker_txconf > 0){
+								//Transaction to smart contract does exist, go directly to monitoring if taker is going to pull
+								NebliDexNetLog("Found maker payment transaction on the blockchain, despite failed broadcast. Monitor.");
+								myquery = "Update MYTRANSACTIONS Set waittime = @time, type = 1, txhash = '"+maker_txhash+"' Where nindex = @index;";
+								UpdateWalletStatus(cointype,2); //Lock maker funds as maker is now in contract
 							}
 							
 							//Update the database
@@ -2426,8 +2453,8 @@ namespace NebliDex
 					}
 					
 					//Search for malicious responses from electrum server (source of major hack to electrum network)
-					if(blockdata.IndexOf(">",StringComparison.InvariantCulture) >= 0 || blockdata.IndexOf(".com",StringComparison.InvariantCulture) >= 0){
-						//There is a script here that is not supposed to be here
+					if(blockdata.IndexOf(">",StringComparison.InvariantCulture) >= 0 || blockdata.IndexOf(".com",StringComparison.InvariantCulture) >= 0 || blockdata.IndexOf("://",StringComparison.InvariantCulture) >= 0){
+						//There is a script/website here that is not supposed to be here
 						NebliDexNetLog("Transaction broadcast failed: Incidentally connected to malicious electrum server, disconnecting and removing");
 						RemoveElectrumServer(-1,dex.ip_address[0]); //Remove the IP address from our list
 						dex.open = false;
