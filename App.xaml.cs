@@ -32,22 +32,26 @@ namespace NebliDex
 		public static int default_ui_look = 0;
 		
 		//Mainnet version
-		public static int protocol_version = 7; //My protocol version
-		public static int protocol_min_version = 7; //Minimum accepting protocol version
-		public static string version_text = "v7.0.1";
+		public static int protocol_version = 8; //My protocol version
+		public static int protocol_min_version = 8; //Minimum accepting protocol version
+		public static string version_text = "v8.0.0";
 		public static bool run_headless = false; //If true, this software is ran in critical node mode without GUI on startup
 		public static int sqldatabase_version = 3;
 		public static int accountdat_version = 1; //The version of the account wallet
 		
-		//Lowest testnet version: 7
-		//Lowest mainnet version: 7
+		//Lowest testnet version: 8
+		//Lowest mainnet version: 8
 		
-		//Version 7
-		//Added new markets (15!)
-		//Added 2 new wallets for stablecoins USDC, DAI based on ERC20 standard		
-		//NDEX/GRS, NDEX/MONA, NDEX/DAI, NDEX/USDC, NDEX/BCH, NDEX/ETH
-		//NEBL/DAI, NEBL/USDC, LTC/DAI, LTC/USDC, BTC/DAI, BTC/USDC, BCH/DAI 
-		//GRS/DAI, MONA/DAI
+		//Version 8
+		//Added 4 new wallets for Yazom (ZOM), Maker (MKR), Chainlink (LINK) and Basic Attention token (BAT) based on ERC20 standard
+		//Removed 1 wallet for Tangle (TGL) and its market
+		//New markets (10):
+		//ZOM/NEBL, ZOM/LTC, ZOM/BTC
+		//MKR/LTC, MKR/BTC
+		//LINK/NEBL, LINK/LTC, LINK/BTC
+		//BAT/LTC, BAT/BTC
+		
+		//Fixed assorted bugs with loading electrum / cn servers, fixed sync clock
 		
 		public static string App_Path = AppDomain.CurrentDomain.BaseDirectory;
 
@@ -64,7 +68,7 @@ namespace NebliDex
 		public static int wlan_mode = 0; //0 = Internet, 1 = WLAN, 2 = Localhost (This is for CN IP addresses returned)
 		
 		public static int exchange_market = 2; //NDEX/NEBL
-		public static int total_markets = 37;
+		public static int total_markets = 47;
 		public static int total_scan_markets = total_markets; // This number will vary if we are updating the markets
 		public static int total_cointypes = 7; //The total amount of cointypes supported by NebliDex
 		//Possible cointypes are:
@@ -74,7 +78,7 @@ namespace NebliDex
 		//3 - Groestlcoin based
 		//4 - Bitcoin Cash (ABC) based
 		//5 - Monacoin based
-		//6 - Ethereum based
+		//6 - Ethereum based (including tokens)
 		
 		public static Random app_random_gen = new Random(); //App random number generator
 		public static string my_rsa_privkey,my_rsa_pubkey; //These are used to exchange a one time use password nonce between validator and TN
@@ -195,9 +199,11 @@ namespace NebliDex
 					base_symbol = "NEBL";
 					trade_symbol = "TGL";
 					base_wallet = 0; //NEBL wallet
-					trade_wallet = 12; //TGL wallet					
+					trade_wallet = 12; //TGL wallet
+
+					active = false;					
 				}else if(index == 14){
-					//TGL/NEBL
+					//IMBA/NEBL
 					base_symbol = "NEBL";
 					trade_symbol = "IMBA";
 					base_wallet = 0; //NEBL wallet
@@ -312,6 +318,56 @@ namespace NebliDex
 					trade_symbol = "MONA";
 					base_wallet = 18;
 					trade_wallet = 16; //MONA
+				}else if(index == 37){
+					base_symbol = "NEBL";
+					trade_symbol = "ZOM";
+					base_wallet = 0;
+					trade_wallet = 20; //ZOM
+				}else if(index == 38){
+					base_symbol = "LTC";
+					trade_symbol = "ZOM";
+					base_wallet = 2;
+					trade_wallet = 20;
+				}else if(index == 39){
+					base_symbol = "BTC";
+					trade_symbol = "ZOM";
+					base_wallet = 1;
+					trade_wallet = 20;
+				}else if(index == 40){
+					base_symbol = "LTC";
+					trade_symbol = "MKR";
+					base_wallet = 2;
+					trade_wallet = 21; //MKR
+				}else if(index == 41){
+					base_symbol = "BTC";
+					trade_symbol = "MKR";
+					base_wallet = 1;
+					trade_wallet = 21; 
+				}else if(index == 42){
+					base_symbol = "NEBL";
+					trade_symbol = "LINK";
+					base_wallet = 0;
+					trade_wallet = 22; //LINK
+				}else if(index == 43){
+					base_symbol = "LTC";
+					trade_symbol = "LINK";
+					base_wallet = 2;
+					trade_wallet = 22;
+				}else if(index == 44){
+					base_symbol = "BTC";
+					trade_symbol = "LINK";
+					base_wallet = 1;
+					trade_wallet = 22;
+				}else if(index == 45){
+					base_symbol = "LTC";
+					trade_symbol = "BAT";
+					base_wallet = 2;
+					trade_wallet = 23; //BAT
+				}else if(index == 46){
+					base_symbol = "BTC";
+					trade_symbol = "BAT";
+					base_wallet = 1;
+					trade_wallet = 23;
 				}
 			}
 			
@@ -339,10 +395,10 @@ namespace NebliDex
 			public int status = 0; //0 - avail, 1 - pending, 2 - waiting
 			public int blockchaintype = 0;
 			
-			public static int total_coin_num = 20; //Total number of possible different wallet coins
+			public static int total_coin_num = 24; //Total number of possible different wallet coins
 			
 			public static bool CoinActive(int ctype){ //Coins that are not active anymore
-				if(ctype == 5 || ctype == 6 || ctype == 9){ //QRT, CHE, PTN are not active anymore
+				if(ctype == 5 || ctype == 6 || ctype == 9 || ctype == 12){ //QRT, CHE, PTN, TGL are not active anymore
 					return false;
 				}else{
 					return true;	
@@ -358,7 +414,7 @@ namespace NebliDex
 			}
 			
 			public static bool CoinERC20(int ctype){
-				if(ctype == 18 || ctype == 19){ //New ETH based ERC20 tokens
+				if(ctype >= 18 && ctype <= 23){ //New ETH based ERC20 tokens
 					return true;
 				}
 				return false;
@@ -387,8 +443,8 @@ namespace NebliDex
 			}
 			
 			public static int BlockchainType(int type){
-				if(type == 0 || (type > 2 && type < 14)){
-					return 0; //Neblio based (including tokens
+				if(type == 0 || Wallet.CoinNTP1(type) == true){
+					return 0; //Neblio based (including tokens)
 				}else if(type == 1){
 					return 1;
 				}else if(type == 2){
@@ -399,8 +455,8 @@ namespace NebliDex
 					return 4;
 				}else if(type == 16){
 					return 5;
-				}else if(type == 17 || type == 18 || type == 19){
-					return 6;
+				}else if(type == 17 || Wallet.CoinERC20(type) == true){
+					return 6; //Ethereum based (including tokens)
 				}
 				return 0;
 			}
@@ -449,6 +505,14 @@ namespace NebliDex
 						return "DAI"; //Dai ERC20 stablecoin
 					}else if(type == 19){
 						return "USDC"; //USDC ERC20 stablecoin
+					}else if(type == 20){
+						return "ZOM"; //ZOM ERC20 token
+					}else if(type == 21){
+						return "MKR"; //MKR ERC20 token
+					}else if(type == 22){
+						return "LINK"; //LINK ERC20 token
+					}else if(type == 23){
+						return "BAT"; //BAT ERC20 token
 					}
 					return "";
 				}
@@ -474,6 +538,30 @@ namespace NebliDex
 						}else{
 							return ""; //USDC doesn't have a testnet
 						}
+					}else if(type == 20){ //ZOM Contract
+						if(testnet_mode == false){
+							return "0x42382F39e7C9F1ADD5fa5f0c6e24aa62f50be3b3";
+						}else{
+							return ""; //ZOM doesn't have a testnet
+						}
+					}else if(type == 21){ //MKR Contract
+						if(testnet_mode == false){
+							return "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2";
+						}else{
+							return ""; //Not interacting with testnet
+						}
+					}else if(type == 22){ //LINK Contract
+						if(testnet_mode == false){
+							return "0x514910771AF9Ca656af840dff83E8264EcF986CA";
+						}else{
+							return ""; //Not interacting with testnet
+						}
+					}else if(type == 23){ //BAT Contract
+						if(testnet_mode == false){
+							return "0x0D8775F648430679A709E98d2b0Cb6250d2887EF";
+						}else{
+							return ""; //Not interacting with testnet
+						}
 					}
 					return "";					
 				}set{ return; }
@@ -490,6 +578,14 @@ namespace NebliDex
 						return 18; //Dai contracts have 18 decimal places
 					}else if(type == 19){
 						return 6; //USDC has 6 decimal places
+					}else if(type == 20){
+						return 18; //ZOM has 18 decimal places
+					}else if(type == 21){
+						return 18; //MKR has 18 decimal places
+					}else if(type == 22){
+						return 18; //LINK has 18 decimal places
+					}else if(type == 23){
+						return 18; //BAT has 18 decimal places
 					}
 					return 8;					
 				}set{ return; }
