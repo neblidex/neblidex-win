@@ -33,14 +33,12 @@ namespace NebliDex
 			InitializeComponent();
 			WindowStartupLocation = System.Windows.WindowStartupLocation.CenterScreen;
 			
-			decimal balance=0;
+			
 			for(int i = 0;i < App.WalletList.Count;i++){
 				Coin_Box.Items.Add(App.WalletList[i].Coin);
-				if(App.WalletList[i].type == 0){
-					balance = App.WalletList[i].balance;
-				}
 			}
 			Coin_Box.SelectedIndex = 0;
+			decimal balance = App.WalletList[0].balance;
 			
 			Balance_Amount.Content = String.Format(CultureInfo.InvariantCulture,"{0:0.########}",balance)+" NEBL";
 		}
