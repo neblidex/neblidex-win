@@ -27,15 +27,12 @@ namespace NebliDex
 		{
 			InitializeComponent();
 			WindowStartupLocation = System.Windows.WindowStartupLocation.CenterScreen;
-			
-			string addre = "";
+						
 			for(int i = 0;i < App.WalletList.Count;i++){
 				Coin_Box.Items.Add(App.WalletList[i].Coin);
-				if(App.WalletList[i].type == 0){
-					addre = App.WalletList[i].address;
-				}
 			}
 			Coin_Box.SelectedIndex = 0;
+			string addre = App.WalletList[0].address;
 			
 			Deposit_Address.Text = addre;
 
