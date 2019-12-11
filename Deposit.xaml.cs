@@ -33,6 +33,9 @@ namespace NebliDex
 			}
 			Coin_Box.SelectedIndex = 0;
 			string addre = App.WalletList[0].address;
+			if(App.WalletList[0].blockchaintype == 4){
+				addre = SharpCashAddr.Converter.ToCashAddress(addre);
+			}
 			
 			Deposit_Address.Text = addre;
 

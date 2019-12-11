@@ -40,7 +40,7 @@ namespace NebliDex
 			Coin_Box.SelectedIndex = 0;
 			decimal balance = App.WalletList[0].balance;
 			
-			Balance_Amount.Content = String.Format(CultureInfo.InvariantCulture,"{0:0.########}",balance)+" NEBL";
+			Balance_Amount.Content = String.Format(CultureInfo.InvariantCulture,"{0:0.########}",balance)+" "+App.WalletList[0].Coin;
 		}
 		
 		private async void Confirm_Withdraw(object sender, RoutedEventArgs e)
