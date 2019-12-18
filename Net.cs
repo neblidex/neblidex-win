@@ -603,6 +603,7 @@ namespace NebliDex
 				//If a CN IP appears less often than the median, remove it
 				List<string> cn_ip = new List<string>();
 				List<int> cn_ip_prevalance = new List<int>();
+
 				int cn_server_queried = 0;
 				for(int i = 0;i < 10;i++){
 					//Do this for at most 10 CNs
@@ -1180,7 +1181,7 @@ namespace NebliDex
 				            	//Setup the callback that runs when data is received into connection
 				            	nStream.BeginRead(dex.buf,0,1,DexConnCallback,dex);
 
-								//Now get some information from the critical node but first send version
+								//Now get some information from the critical node but first send version and total markets
 								SendCNServerAction(dex,3,"");
 								dex.blockhandle.WaitOne(5000); //This will wait 5 seconds for a response								
 								if(dex.blockdata == ""){
@@ -1220,6 +1221,46 @@ namespace NebliDex
 									dex.open = false;
 									//This will try to connect to another CN
 									throw new System.InvalidOperationException("Server Communication Error");
+								}else{
+									// Now grab a list of all the active CNs
+									NebliDexNetLog("Obtaining market data for all CNs");
+									try {
+						                int page = 0;
+						                int numpts = 0;
+						                do{
+											string blockdata="";
+											lock(dex.blockhandle){
+												dex.blockhandle.Reset();
+												SendCNServerAction(dex,56,""+page);
+												dex.blockhandle.WaitOne(15000); //This will wait 15 seconds for a response								
+												if(dex.blockdata == ""){break;}
+												blockdata = dex.blockdata;
+											}
+							
+											JObject js = JObject.Parse(blockdata);
+											// Go through each row to get the total markets
+											string r_method = js["cn.method"].ToString();											
+											if(r_method.Equals("cn.getlist")){
+												//Get the list
+												numpts = Convert.ToInt32(js["cn.numpts"].ToString());
+												foreach (JToken row in js["cn.result"])
+												{
+													//And get each market for the CNs
+													string ip_value = row["cn.ip"].ToString();
+													int totalmark = total_markets;
+													if(row["cn.totalmarkets"] != null){ // TODO: Transitional condition
+														totalmark = Convert.ToInt32(row["cn.totalmarkets"].ToString());
+													}
+													if(CN_Nodes_By_IP.ContainsKey(ip_value) == true){
+														CN_Nodes_By_IP[ip_value].total_markets = totalmark;
+													}											
+												}								
+											}											
+											page++;								
+						                }while(numpts > 0);
+									} catch (Exception) {
+										NebliDexNetLog("Unable to get full list of CNs for TN");
+									}									
 								}
 								
 								if(critical_node == true){
@@ -1511,7 +1552,7 @@ namespace NebliDex
 							}
 							//Send to server, so response
 							//Verify if the connected client is a critical node by comparing it to list
-							//If not send list with only CN Ips
+							//If not send list with only CN Ips and its total markets
 							if(js["cn.authlevel"] == null){
 								SendCNServerAction(con,2,js["cn.page"].ToString());
 							}else{
@@ -1537,6 +1578,7 @@ namespace NebliDex
 							
 							//The client wants to know if his min_version is ok
 							int cversion = Convert.ToInt32(js["cn.result"].ToString()); //Get client version
+							int totalmarket = Convert.ToInt32(js["cn.totalmarkets"].ToString()); //Get the total markets
 							if(cversion < protocol_min_version){
 								//Not good, return information to client
 								SendCNServerAction(con,4,"Please upgrade your version of NebliDex by visiting NebliDex.xyz (Not .com)"); //Send client version not good
@@ -1545,6 +1587,10 @@ namespace NebliDex
 								//The client min_version is higher than the server version
 								//Reject the connection as well
 								SendCNServerAction(con,4,"Your version is above my Server version. Cannot connect.");
+								con.open = false; //Close the connection
+							}else if(totalmarket > total_markets){
+								//Reject the connection if it has more markets than the server supports
+								SendCNServerAction(con,4,"Your total markets are greater than my Server markets. Cannot connect.");
 								con.open = false; //Close the connection
 							}else{
 								//Send back pong
@@ -2185,7 +2231,7 @@ namespace NebliDex
 							}
 							
 							if(exist == false){
-								//No order request found by this CN, shouldn't really happen too often
+								//No order request found by this CN, shouldn't really happen too often but may happen for unsupported markets
 								SendCNServerAction(con,43,"Order Request Not Found");
 							}else{
 								//Order request was found
@@ -3312,9 +3358,15 @@ namespace NebliDex
 							//Now calculate the totals for ethereum blockchain
 							if(trade_wallet_blockchaintype == 6){
 								block_fee1 = GetEtherContractTradeFee(Wallet.CoinERC20(MarketList[exchange_market].trade_wallet));
+								if(Wallet.CoinERC20(MarketList[exchange_market].trade_wallet) == true){
+									block_fee1 = Convert.ToDecimal(double_epsilon); // The minimum trade size for ERC20 tokens
+								}								
 							}
 							if(base_wallet_blockchaintype == 6){
 								block_fee2 = GetEtherContractTradeFee(Wallet.CoinERC20(MarketList[exchange_market].base_wallet));
+								if(Wallet.CoinERC20(MarketList[exchange_market].base_wallet) == true){
+									block_fee2 = Convert.ToDecimal(double_epsilon); // The minimum trade size for ERC20 tokens
+								}								
 							}
 			
 							if(total < block_fee2 || MyOpenOrderList[i].amount < block_fee1){
@@ -4342,7 +4394,7 @@ namespace NebliDex
 						if(myord.validating == true && validator_ip.Equals(con.ip_address[0]) == true){
 							//The validating IP is equal to the connection IP and I'm validating, should not normally happen
 							//Unless CN_Count is very low (minus 3 in case validator chosen is maker, taker or connected CN
-							if(CN_Nodes_By_IP.Count-3 > 0){return false;}
+							if(MarketCNNodeCount(myord.market)-3 > 0){return false;}
 						}
 						
 						if(myord.order_stage >= 2){
@@ -4696,7 +4748,7 @@ namespace NebliDex
 						if(myord.validating == true && validator_ip.Equals(con.ip_address[0]) == true){
 							//The validating IP is equal to the connection IP and I'm validating, should not normally happen
 							//Unless CN_Count is very low (minus 3 in case validator chosen is maker, taker or connected CN
-							if(CN_Nodes_By_IP.Count-3 > 0){return false;}
+							if(MarketCNNodeCount(myord.market)-3 > 0){return false;}
 						}
 						
 						if(myord.order_stage >= 3){
@@ -5191,6 +5243,21 @@ namespace NebliDex
 			
 			NebliDexNetLog("Taker finished processing secondary validation information: "+order_nonce);
 		}
+		
+		public static int MarketCNNodeCount(int market)
+		{
+			//Returns the number of CNs that support this market
+			int count = 0;
+			lock(CN_Nodes_By_IP){
+				foreach(CriticalNode cn in CN_Nodes_By_IP.Values)
+				{
+					if(market < cn.total_markets){
+						count++;
+					}
+				}
+			}
+			return count;
+		}
 
 		public static bool CheckErrorMessage(string msg)
 		{
@@ -5268,6 +5335,8 @@ namespace NebliDex
 				case "Order Request Denied: You do not have enough balance to match this order in the Ethereum contract":
 					return true;
 				case "Order Request Denied: You have not authorized enough allowance to complete this trade":
+					return true;
+				case "Your total markets are greater than my Server markets. Cannot connect.":
 					return true;
 				default:
 					return false;

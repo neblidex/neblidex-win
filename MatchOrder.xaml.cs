@@ -160,11 +160,19 @@ namespace NebliDex
 			block_fee2 = App.blockchain_fee[base_wallet_blockchaintype];
 			
 			//Now calculate the totals for ethereum blockchain
+			//ERC20 tokens should not require a minimum trade amount (or maybe use double epsilon)
+			
 			if(trade_wallet_blockchaintype == 6){
 				block_fee1 = App.GetEtherContractTradeFee(App.Wallet.CoinERC20(App.MarketList[App.exchange_market].trade_wallet));
+				if(App.Wallet.CoinERC20(App.MarketList[App.exchange_market].trade_wallet) == true){
+					block_fee1 = Convert.ToDecimal(App.double_epsilon); // The minimum trade size for ERC20 tokens
+				}
 			}
 			if(base_wallet_blockchaintype == 6){
 				block_fee2 = App.GetEtherContractTradeFee(App.Wallet.CoinERC20(App.MarketList[App.exchange_market].base_wallet));
+				if(App.Wallet.CoinERC20(App.MarketList[App.exchange_market].base_wallet) == true){
+					block_fee2 = Convert.ToDecimal(App.double_epsilon); // The minimum trade size for ERC20 tokens
+				}
 			}
 			
 			if(total < block_fee2 || amount < block_fee1){
