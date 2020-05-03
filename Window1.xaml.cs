@@ -382,7 +382,7 @@ namespace NebliDex
 					Fee_Status.Content = "BlockHelper Active | "+Fee_Status.Content;
 				}
 				Fee_Status.Foreground = System.Windows.Media.Brushes.Black;
-				CN_Fee.Content = "CN Fee: "+App.ndex_fee;
+				CN_Fee.Content = "CN Fee: "+App.ndex_fee+" | Taker Fee: "+String.Format(CultureInfo.InvariantCulture,"{0:0.##}",Math.Round(App.taker_fee*100,2))+"%";
 				int trade_wallet_blockchaintype = App.GetWalletBlockchainType(App.MarketList[App.exchange_market].trade_wallet);
 				int base_wallet_blockchaintype = App.GetWalletBlockchainType(App.MarketList[App.exchange_market].base_wallet);
 				

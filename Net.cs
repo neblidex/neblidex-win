@@ -4522,6 +4522,16 @@ namespace NebliDex
 					if(myord.type == 0){
 						//I'm buying
 						receiveamount = myord.amount; //The amount we are requesting
+						
+						//Calculate the taker fee
+						decimal my_taker_fee = receiveamount * taker_fee;
+						my_taker_fee = Decimal.Round(my_taker_fee,8);
+						if(App.IsWalletNTP1(MarketList[myord.market].trade_wallet) == true){
+							// Neblio based tokens are currently indivisible
+							my_taker_fee = Math.Floor(my_taker_fee);
+						}
+						receiveamount -= my_taker_fee; //Takers expect balance minus certain fees
+						
 						if(MarketList[myord.market].trade_wallet == 3){
 							//NDEX so no fee (but will be deducted from receive balance)
 							receiveamount -= vn_fee / 2m; //Buying NDEX, so no fee but reduce balance expected
@@ -4543,6 +4553,16 @@ namespace NebliDex
 						}
 						sendamount = myord.amount - subtractfee; //We are sending the trade amount minus any subtract fees
 						receiveamount = Decimal.Round(myord.amount*myord.price,8);
+						
+						//Calculate the taker fee
+						decimal my_taker_fee = receiveamount * taker_fee;
+						my_taker_fee = Decimal.Round(my_taker_fee,8);
+						if(App.IsWalletNTP1(MarketList[myord.market].base_wallet) == true){
+							// Neblio based tokens are currently indivisible
+							my_taker_fee = Math.Floor(my_taker_fee);
+						}
+						receiveamount -= my_taker_fee; //Takers expect balance minus certain fees
+						
 						redeemscript_wallet = MarketList[myord.market].trade_wallet;
 						makerwallet = MarketList[myord.market].base_wallet;
 					}
@@ -4913,7 +4933,16 @@ namespace NebliDex
 							vn_fee = 0;
 						}else{
 							vn_fee = vn_fee / 2m;
-						}						
+						}
+
+						//Calculate the taker fee and minus it from what we send
+						decimal receiver_taker_fee = sendamount * taker_fee;
+						receiver_taker_fee = Decimal.Round(receiver_taker_fee,8);
+						if(App.IsWalletNTP1(taker_receivewallet) == true){
+							// Neblio based tokens are currently indivisible
+							receiver_taker_fee = Math.Floor(receiver_taker_fee);
+						}
+						sendamount -= receiver_taker_fee; //Takers expect balance minus certain fees						
 					}else{
 						//I'm selling
 						maker_receivewallet = MarketList[myord.market].base_wallet;
@@ -4926,7 +4955,16 @@ namespace NebliDex
 							vn_fee = vn_fee/2m;
 						}
 						sendamount = trade_amount - subtractfee; //We are sending the trade amount minus any subtract fees
-						receiveamount = Decimal.Round(trade_amount*myord.price,8);				
+						receiveamount = Decimal.Round(trade_amount*myord.price,8);
+
+						//Calculate the taker fee and minus it from what we send
+						decimal receiver_taker_fee = trade_amount * taker_fee;
+						receiver_taker_fee = Decimal.Round(receiver_taker_fee,8);
+						if(App.IsWalletNTP1(taker_receivewallet) == true){
+							// Neblio based tokens are currently indivisible
+							receiver_taker_fee = Math.Floor(receiver_taker_fee);
+						}
+						sendamount -= receiver_taker_fee; //Takers expect balance minus certain fees						
 					}
 					
 					//Recreate taker contract
