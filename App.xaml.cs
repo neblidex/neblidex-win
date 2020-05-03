@@ -34,7 +34,7 @@ namespace NebliDex
 		//Mainnet version
 		public static int protocol_version = 10; //My protocol version
 		public static int protocol_min_version = 10; //Minimum accepting protocol version
-		public static string version_text = "v10.0.2";
+		public static string version_text = "v10.0.3";
 		public static bool run_headless = false; //If true, this software is ran in critical node mode without GUI on startup
 		public static int sqldatabase_version = 3;
 		public static int accountdat_version = 1; //The version of the account wallet
