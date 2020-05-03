@@ -32,23 +32,19 @@ namespace NebliDex
 		public static int default_ui_look = 0;
 		
 		//Mainnet version
-		public static int protocol_version = 10; //My protocol version
-		public static int protocol_min_version = 10; //Minimum accepting protocol version
+		public static int protocol_version = 11; //My protocol version
+		public static int protocol_min_version = 11; //Minimum accepting protocol version
 		public static string version_text = "v11.0.0";
 		public static bool run_headless = false; //If true, this software is ran in critical node mode without GUI on startup
 		public static int sqldatabase_version = 3;
 		public static int accountdat_version = 1; //The version of the account wallet
 		
-		//Lowest testnet version: 10
-		//Lowest mainnet version: 10
+		//Lowest testnet version: 11
+		//Lowest mainnet version: 11
 		
-		//Version 10
-		//Allow for very small ERC20 order amounts (ideal for wBTC)
-		//Updated DAI contract to new version
-		//Fixed ETH confirmation bug
-		//Allow for new markets without protocol changes
-
-		//Added Etherscan API Key and introduced balance rotation for APIs	
+		//Version 11
+		//Changed fee schedule, added a taker only fee of 0.2%
+		//Fix possible case where ERC20 token transaction fails due to unallocated allowance
 		
 		public static string App_Path = AppDomain.CurrentDomain.BaseDirectory;
 
