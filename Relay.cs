@@ -44,7 +44,7 @@ namespace NebliDex
 			public string msgnonce; //Nonce of message
 		}
 		
-		public static bool SubmitMyOrder(OpenOrder ord, DexConnection dex)
+		public static bool SubmitMyOrder(OpenOrder ord, DexConnection dex, bool nodialog = false)
 		{
 			//This function takes the order that we created and broadcast it to the connected critical node
 			if(dex == null){
@@ -58,11 +58,15 @@ namespace NebliDex
 			}
 			
 			if(dex == null){
-				System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(
-					() =>
-					{
-						MessageBox.Show("Unable to connect to a Critical Node");
-					}));
+				if(nodialog == false){
+					System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(
+						() =>
+						{
+							MessageBox.Show("Unable to connect to a Critical Node");
+						}));					
+				}else{
+					NebliDexNetLog("Unable to connect to a Critical Node");
+				}
 				return false;
 			}
 			
@@ -91,18 +95,22 @@ namespace NebliDex
 				//The order was rejected
 				bool error_ok = CheckErrorMessage(blockdata);				
 				if(error_ok == false){return false;} //Error message is not standard, don't show it
-				System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(
-					() =>
-					{
-						MessageBox.Show(blockdata);
-					}));
+				if(nodialog == false){
+					System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(
+						() =>
+						{
+							MessageBox.Show(blockdata);
+						}));					
+				}else{
+					NebliDexNetLog(blockdata);
+				}
 				return false;
 			}
 			
 			return true; //Otherwise it is ok to submit our order and post it
 		}
 		
-		public static bool SubmitMyOrderRequest(OpenOrder ord)
+		public static bool SubmitMyOrderRequest(OpenOrder ord, bool nodialog = false)
 		{
 			//This user has opted to create a market order instead of limit order
 			//This function takes the order that we created and broadcast it to the connected critical node
@@ -116,11 +124,15 @@ namespace NebliDex
 			}
 			
 			if(dex == null){
-				System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(
-					() =>
-					{
-						MessageBox.Show("Unable to connect to a Critical Node");
-					}));
+				if(nodialog == false){
+					System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(
+						() =>
+						{
+							MessageBox.Show("Unable to connect to a Critical Node");
+						}));					
+				}else{
+					NebliDexNetLog("Unable to connect to a Critical Node");
+				}
 				return false;
 			}
 			
@@ -160,11 +172,15 @@ namespace NebliDex
 				//The order was rejected
 				bool error_ok = CheckErrorMessage(blockdata);				
 				if(error_ok == false){return false;} //Error message is not standard, don't show it
-				System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(
-					() =>
-					{
-						MessageBox.Show(blockdata);
-					}));
+				if(nodialog == false){
+					System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(
+						() =>
+						{
+							MessageBox.Show(blockdata);
+						}));					
+				}else{
+					NebliDexNetLog(blockdata);
+				}
 				return false;
 			}
 			
@@ -508,6 +524,7 @@ namespace NebliDex
 			
 			//First things first, cancel the order on my side (so even if server is down, order is still cancelled)
 			lock(MyOpenOrderList){
+				if(ord.order_stage >= 3){return;} //Can't cancel as order is in trade
 				for(int i = 0; i < MyOpenOrderList.Count;i++){
 					if(MyOpenOrderList[i].order_nonce.Equals(ord.order_nonce) == true){
 						RemoveSavedOrder(ord);

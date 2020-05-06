@@ -3382,12 +3382,12 @@ namespace NebliDex
 							bool sending_erc20 = false;
 							decimal erc20_amount = 0;
 							int erc20_wallet = 0;
-							if(MyOpenOrderList[i].type == 0 && Wallet.CoinERC20(App.MarketList[App.exchange_market].base_wallet) == true){
+							if(MyOpenOrderList[i].type == 0 && Wallet.CoinERC20(MarketList[exchange_market].base_wallet) == true){
 								//Buying trade with ERC20
 								sending_erc20 = true;
 								erc20_amount = total;
 								erc20_wallet = MarketList[exchange_market].base_wallet;
-							}else if(MyOpenOrderList[i].type == 1 && Wallet.CoinERC20(App.MarketList[App.exchange_market].trade_wallet) == true){
+							}else if(MyOpenOrderList[i].type == 1 && Wallet.CoinERC20(MarketList[exchange_market].trade_wallet) == true){
 								//Selling trade that is also an ERC20
 								sending_erc20 = true;
 								erc20_amount = MyOpenOrderList[i].amount;
@@ -3396,7 +3396,7 @@ namespace NebliDex
 							
 							if(sending_erc20 == true){
 								//Make sure the allowance is there already
-								decimal allowance = App.GetERC20AtomicSwapAllowance(App.GetWalletAddress(erc20_wallet),App.ERC20_ATOMICSWAP_ADDRESS,erc20_wallet);
+								decimal allowance = GetERC20AtomicSwapAllowance(GetWalletAddress(erc20_wallet),ERC20_ATOMICSWAP_ADDRESS,erc20_wallet);
 								if(allowance < 0){
 									NebliDexNetLog("Error determining ERC20 contract allowance");	
 									continue;													
@@ -4526,7 +4526,7 @@ namespace NebliDex
 						//Calculate the taker fee
 						decimal my_taker_fee = receiveamount * taker_fee;
 						my_taker_fee = Decimal.Round(my_taker_fee,8);
-						if(App.IsWalletNTP1(MarketList[myord.market].trade_wallet) == true){
+						if(IsWalletNTP1(MarketList[myord.market].trade_wallet) == true){
 							// Neblio based tokens are currently indivisible
 							my_taker_fee = Math.Floor(my_taker_fee);
 						}
@@ -4557,7 +4557,7 @@ namespace NebliDex
 						//Calculate the taker fee
 						decimal my_taker_fee = receiveamount * taker_fee;
 						my_taker_fee = Decimal.Round(my_taker_fee,8);
-						if(App.IsWalletNTP1(MarketList[myord.market].base_wallet) == true){
+						if(IsWalletNTP1(MarketList[myord.market].base_wallet) == true){
 							// Neblio based tokens are currently indivisible
 							my_taker_fee = Math.Floor(my_taker_fee);
 						}
@@ -4938,7 +4938,7 @@ namespace NebliDex
 						//Calculate the taker fee and minus it from what we send
 						decimal receiver_taker_fee = sendamount * taker_fee;
 						receiver_taker_fee = Decimal.Round(receiver_taker_fee,8);
-						if(App.IsWalletNTP1(taker_receivewallet) == true){
+						if(IsWalletNTP1(taker_receivewallet) == true){
 							// Neblio based tokens are currently indivisible
 							receiver_taker_fee = Math.Floor(receiver_taker_fee);
 						}
@@ -4960,7 +4960,7 @@ namespace NebliDex
 						//Calculate the taker fee and minus it from what we send
 						decimal receiver_taker_fee = trade_amount * taker_fee;
 						receiver_taker_fee = Decimal.Round(receiver_taker_fee,8);
-						if(App.IsWalletNTP1(taker_receivewallet) == true){
+						if(IsWalletNTP1(taker_receivewallet) == true){
 							// Neblio based tokens are currently indivisible
 							receiver_taker_fee = Math.Floor(receiver_taker_fee);
 						}

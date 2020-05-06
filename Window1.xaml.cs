@@ -1465,9 +1465,13 @@ namespace NebliDex
 				
 				if(App.run_headless == true){
 					//This is a heartbeat indicator
-					int cn_online = App.CN_Nodes_By_IP.Count;
-					string percent = String.Format(CultureInfo.InvariantCulture,"{0:0.###}",Math.Round(App.my_cn_weight*100,3));
-					Console.WriteLine("Critical Node Status ("+App.UTCTime()+" UTC TIME): CNs Online: "+cn_online+", "+percent+"% Chance of Validating");
+					if(App.trader_api_activated == false){
+						int cn_online = App.CN_Nodes_By_IP.Count;
+						string percent = String.Format(CultureInfo.InvariantCulture,"{0:0.###}",Math.Round(App.my_cn_weight*100,3));
+						Console.WriteLine("Critical Node Status ("+App.UTCTime()+" UTC TIME): CNs Online: "+cn_online+", "+percent+"% Chance of Validating");					
+					}else{
+						Console.WriteLine("Trader API server running ("+App.UTCTime()+" UTC TIME) with "+App.MyOpenOrderList.Count+" open order(s) present");
+					}
 				}
 			}
 			
@@ -1546,6 +1550,7 @@ namespace NebliDex
 				int oldmarket = App.exchange_market;
 				App.exchange_market = which_market;
 				
+				App.trader_api_changing_markets = true; // In case Trading API being used
 				Market_Box.IsEnabled = false;
 				if(App.critical_node == false){
 					Market_Percent.Content = "LOADING..."; //Put a loading status
@@ -1563,7 +1568,41 @@ namespace NebliDex
 				Market_Box.IsEnabled = true; //Re-enable the box
 				RefreshUI();
 				Save_UI_Config(); //Save the UI Market Info
+				App.trader_api_changing_markets = false;
 			}
+		}
+		
+		public void Change_Market_Info_Only(string market,bool loading)
+		{
+			// This only updates the Market Box and the Market percent tap
+			System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(
+				() =>
+				{
+					for(int i=0;i < Market_Box.Items.Count;i++){
+						string market_string = (string)Market_Box.Items[i];
+						if(market_string.Equals(market)){
+							Market_Box.SelectedIndex = i; // Change the selected index
+							break;
+						}
+					}
+					if(loading == true){
+						Market_Percent.Content = "LOADING..."; //Put a loading status
+						Market_Percent.Foreground = System.Windows.Media.Brushes.White;
+						if(current_ui_look == 1){
+							//Light
+							Market_Percent.Foreground = System.Windows.Media.Brushes.Black;
+						}else if(current_ui_look == 2){
+							//Dark
+							Market_Percent.Foreground = dark_ui_foreground;
+						}
+						Market_Box.IsEnabled = false; //Re-enable the box						
+					}else{
+						// No longer loading
+						Market_Box.IsEnabled = true; //Re-enable the box
+						RefreshUI();
+						Save_UI_Config(); //Save the UI Market Info
+					}
+				}));
 		}
 		
 		private int Selected_Market(string mform)
@@ -1749,6 +1788,37 @@ namespace NebliDex
 			button.IsEnabled = true;
 			
 			Open_Orders_List.Items.Refresh();
+		}
+		
+		private async void Toggle_Trader_API(object sender, RoutedEventArgs e)
+		{
+			if(App.trader_api_activated == false){
+				if(App.critical_node == true){
+					System.Windows.MessageBox.Show("Cannot activate Trader API server while as critical node.");
+					Menu_Item_Trader_API.IsChecked = false;
+					return;				
+				}
+				await Task.Run(() => App.SetTraderAPIServer(true) );
+				await System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(
+					() =>
+					{
+						if(App.trader_api_activated == false){
+							System.Windows.MessageBox.Show("Failed to activate the Trader API server.");
+							Menu_Item_Trader_API.IsChecked = false;
+						}else{
+							System.Windows.MessageBox.Show("Trader API server now active. Port is "+App.trader_api_port+".");
+							Menu_Item_Trader_API.IsChecked = true;						
+						}
+					}));
+			}else{
+				await Task.Run(() => App.SetTraderAPIServer(false) );
+				await System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(
+					() =>
+					{
+						System.Windows.MessageBox.Show("Trader API server now deactivated.");
+						Menu_Item_Trader_API.IsChecked = false;
+					}));				
+			}
 		}
 		
 		private void Request_CN_Status(object sender, RoutedEventArgs e)
