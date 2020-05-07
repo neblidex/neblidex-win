@@ -91,7 +91,6 @@ namespace NebliDex
 					js = new JObject();
 					foreach(string key in request_context.QueryString.AllKeys){
 						js[key] = request_context.QueryString[key];
-						NebliDexNetLog("Key: "+key+": "+request_context.QueryString[key]);
 					}
 				}else{
 					string req_message = "";
@@ -103,7 +102,6 @@ namespace NebliDex
 					if(req_message.Length == 0){
 						throw new Exception("Request content is empty");
 					}
-					NebliDexNetLog("Post data: "+req_message);
 					js = JObject.Parse(req_message); //Parse this message					
 				}
 				
@@ -127,9 +125,13 @@ namespace NebliDex
 					}
 				}else if(request == "lastPrice"){
 					// Returns the last price for the trade token
-					resp["error"] = false;
-					resp_code = 1;
-					resp["result"] = String.Format(CultureInfo.InvariantCulture,"{0:0.########}",GetMarketLastPrice(exchange_market));
+					if(trader_api_changing_markets == false){
+						resp["error"] = false;
+						resp_code = 1;
+						resp["result"] = String.Format(CultureInfo.InvariantCulture,"{0:0.########}",GetMarketLastPrice(exchange_market));						
+					}else{
+						resp_code = 22;
+					}
 				}else if(request == "currentCNFee"){
 					// Returns the last price for the trade token
 					resp["error"] = false;
@@ -184,22 +186,30 @@ namespace NebliDex
 					resp["result"] = result;
 				}else if(request == "marketDepth"){
 					// Returns an array with a list of different wallets
-					resp["error"] = false;
-					resp_code = 1;
-					JObject result = new JObject();
-					JArray bids = TraderAPIAllOpenOrders(0);
-					// Get buy data
-					result["bids"] = bids;
-					JArray asks = TraderAPIAllOpenOrders(1);
-					// Get sell data
-					result["asks"] = asks;
-					resp["result"] = result;
+					if(trader_api_changing_markets == false){
+						resp["error"] = false;
+						resp_code = 1;
+						JObject result = new JObject();
+						JArray bids = TraderAPIAllOpenOrders(0);
+						// Get buy data
+						result["bids"] = bids;
+						JArray asks = TraderAPIAllOpenOrders(1);
+						// Get sell data
+						result["asks"] = asks;
+						resp["result"] = result;						
+					}else{
+						resp_code = 22;
+					}
 				}else if(request == "recentMarketTrades"){
 					// Returns an array with a list of the most recent trades for the market
-					resp["error"] = false;
-					resp_code = 1;
-					JArray result = TraderAPIRecentTrades();
-					resp["result"] = result;
+					if(trader_api_changing_markets == false){
+						resp["error"] = false;
+						resp_code = 1;
+						JArray result = TraderAPIRecentTrades();
+						resp["result"] = result;						
+					}else{
+						resp_code = 22;
+					}
 				}else if(request == "myOpenOrders"){
 					// Returns an array with a list of open orders I have present
 					resp["error"] = false;
@@ -379,6 +389,16 @@ namespace NebliDex
 		
 		public static void TraderAPIMakerOrder(decimal price, decimal amount, decimal min_amount, int order_type, bool approve_erc20, out int code, out string orderID)
 		{
+			if(trader_api_changing_markets == true){
+				code = 21;
+				orderID = "";
+				return;
+			}
+			if(price > max_order_price){
+				code = 23;
+				orderID = "";
+				return;
+			}
         	decimal total = Math.Round(price*amount,8);
 
         	if(MarketList[exchange_market].base_wallet == 3 || MarketList[exchange_market].trade_wallet == 3){
@@ -567,6 +587,10 @@ namespace NebliDex
 		
 		public static void TraderAPITakerOrder(string orderID, decimal amount, bool approve_erc20, out int code)
 		{
+			if(trader_api_changing_markets == true){
+				code = 21;
+				return;
+			}
 			OpenOrder ord = null;
 			lock(OpenOrderList[exchange_market]){
 				for(int i = 0;i < OpenOrderList[exchange_market].Count;i++){
@@ -939,6 +963,12 @@ namespace NebliDex
 					return "Critical Node rejected your order request";
 				case 20:
 					return "All NTP1 tokens are indivisible at this time. Must be whole minimum amounts";
+				case 21:
+					return "Cannot create order while markets are changing";
+				case 22:
+					return "Cannot query market data while markets are changing";
+				case 23:
+					return "This price is higher than the maximum price of 10 000 000";
 				default:
 					return "";
 			}
