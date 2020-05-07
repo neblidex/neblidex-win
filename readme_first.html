@@ -5,7 +5,7 @@
 <meta content="text/html; charset=UTF-8" http-equiv="content-type">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NebliDex - Usage Guide</title>
+<title>NebliDex - Reference Guide</title>
 
 <style>
 table {
@@ -40,7 +40,7 @@ table, th, td {
 			<strong><br><br>For Mac:<br><br></strong>
 			NebliDex was built on OSX 10.11 (El Capitan) but should work on versions greater than or equal to 10.7. Because this app is not signed by Apple's Developer Account, OSX Gatekeeper may block it from opening. If that happens, make sure to right click on the APP and click Open to run it. This will give you an option to bypass Gatekeeper.
 			<strong><br><br>For Linux:<br><br></strong>
-			NebliDex requires GTK and the Mono Runtime installed on your computer. You can find instructions how to install the <strong><a href="https://www.mono-project.com/download/stable/" target="_blank">Mono Framework</a></strong> by following the link. After adding the Mono repository, just <strong>"sudo apt-get install mono-complete"</strong> to install. If NebliDex doesn't open, it means that you do not have Mono installed correctly. Make sure you grab the latest version of Mono (or at least version 5.12) as some older versions do not work. 
+			NebliDex requires GTK and the Mono Runtime to be installed on your computer. You can find instructions how to install the <strong><a href="https://www.mono-project.com/download/stable/" target="_blank">Mono Framework</a></strong> by following the link. After adding the Mono repository, just <strong>"sudo apt-get install mono-complete"</strong> to install. If NebliDex doesn't open, it means that you do not have Mono installed correctly. Make sure you grab the latest version of Mono (or at least version 5.12) as some older versions do not work. 
 			<br><br>
 			<strong>Your first trade</strong>
 			<ol>
@@ -88,10 +88,10 @@ table, th, td {
 				<li>You can run Critical Node without a GUI (headless) by passing argument <strong>--criticalnode</strong> commandline.</li>
 			</ul>
 			<br><strong><big>Trading API</big></strong><br><br>
-			NebliDex supports a trading engine via an API to allow for automated market making and bot trading. Once the client is activated as a Trading API server, it will respond to <strong>localhost (not 127.0.0.1) HTTP requests</strong> at port <strong>6328</strong> only. You can run the Trading API without a GUI (headless) by passing argument <strong>--tradingapi</strong> commandline. You cannot trade and be a critical node at the same time.<br><br>
+			NebliDex supports a trading engine via an API to allow for automated market making and bot trading. Once the client is activated as a Trading API server, it will respond to <strong>localhost (not 127.0.0.1) HTTP requests</strong> at port <strong>6328</strong> only. You can run the Trading API without a GUI (headless) by passing argument <strong>--traderapi</strong> commandline. You cannot trade and be a critical node at the same time.<br><br>
 			Request to the trading engine can be performed via <strong>application/x-www-form-urlencoded GET requests</strong> or <strong>application/json POST requests to the local machine at <span style="background-color: rgb(220,220,220);">http://localhost:6328/</span>.</strong> Responses are given as content type application/json with an error(BOOL), message(STRING), code(INT) and optional result(JSON ARRAY or OBJECT) key-value pairs.
 
-			<br><br><strong><big>API Endpoints</big></strong><br><br>
+			<br><br><strong><big>API Request Methods</big></strong><br><br>
 			<strong>• Perform a connection test</strong><br><br>
 			<table>
 				<thead>
