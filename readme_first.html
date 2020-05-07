@@ -104,7 +104,7 @@ table, th, td {
 				<tbody>
 					<tr>
 						<td>request</td>
-						<td><strong>ping</strong></th>
+						<td><strong>ping</strong></td>
 						<td> </td>
 					</tr>
 				</tbody>
@@ -122,7 +122,7 @@ table, th, td {
 				<tbody>
 					<tr>
 						<td>request</td>
-						<td><strong>currentMarket</strong></th>
+						<td><strong>currentMarket</strong></td>
 						<td> </td>
 					</tr>
 				</tbody>
@@ -139,7 +139,7 @@ table, th, td {
 				<tbody>
 					<tr>
 						<td>request</td>
-						<td><strong>lastPrice</strong></th>
+						<td><strong>lastPrice</strong></td>
 						<td> </td>
 					</tr>
 				</tbody>
@@ -156,7 +156,7 @@ table, th, td {
 				<tbody>
 					<tr>
 						<td>request</td>
-						<td><strong>currentCNFee</strong></th>
+						<td><strong>currentCNFee</strong></td>
 						<td> </td>
 					</tr>
 				</tbody>
@@ -173,7 +173,7 @@ table, th, td {
 				<tbody>
 					<tr>
 						<td>request</td>
-						<td><strong>marketList</strong></th>
+						<td><strong>marketList</strong></td>
 						<td> </td>
 					</tr>
 				</tbody>
@@ -190,7 +190,7 @@ table, th, td {
 				<tbody>
 					<tr>
 						<td>request</td>
-						<td><strong>walletList</strong></th>
+						<td><strong>walletList</strong></td>
 						<td> </td>
 					</tr>
 				</tbody>
@@ -208,12 +208,12 @@ table, th, td {
 				<tbody>
 					<tr>
 						<td>request</td>
-						<td><strong>walletDetails</strong></th>
+						<td><strong>walletDetails</strong></td>
 						<td> </td>
 					</tr>
 					<tr>
 						<td>coin</td>
-						<td>STRING</th>
+						<td>STRING</td>
 						<td>The wallet abbreviation such as NDEX. Case insensitive.</td>
 					</tr>
 				</tbody>
@@ -231,7 +231,7 @@ table, th, td {
 				<tbody>
 					<tr>
 						<td>request</td>
-						<td><strong>marketDepth</strong></th>
+						<td><strong>marketDepth</strong></td>
 						<td> </td>
 					</tr>
 				</tbody>
@@ -248,7 +248,7 @@ table, th, td {
 				<tbody>
 					<tr>
 						<td>request</td>
-						<td><strong>recentMarketTrades</strong></th>
+						<td><strong>recentMarketTrades</strong></td>
 						<td> </td>
 					</tr>
 				</tbody>
@@ -265,7 +265,7 @@ table, th, td {
 				<tbody>
 					<tr>
 						<td>request</td>
-						<td><strong>myOpenOrders</strong></th>
+						<td><strong>myOpenOrders</strong></td>
 						<td> </td>
 					</tr>
 				</tbody>
@@ -283,12 +283,12 @@ table, th, td {
 				<tbody>
 					<tr>
 						<td>request</td>
-						<td><strong>changeMarket</strong></th>
+						<td><strong>changeMarket</strong></td>
 						<td> </td>
 					</tr>
 					<tr>
 						<td>desiredMarket</td>
-						<td>STRING</th>
+						<td>STRING</td>
 						<td>Case sensitive market abbreviation such as NDEX/NEBL</td>
 					</tr>
 				</tbody>
@@ -305,12 +305,12 @@ table, th, td {
 				<tbody>
 					<tr>
 						<td>request</td>
-						<td><strong>cancelOrder</strong></th>
+						<td><strong>cancelOrder</strong></td>
 						<td> </td>
 					</tr>
 					<tr>
 						<td>orderID</td>
-						<td>STRING</th>
+						<td>STRING</td>
 						<td>Case sensitive order ID</td>
 					</tr>
 				</tbody>
@@ -327,7 +327,7 @@ table, th, td {
 				<tbody>
 					<tr>
 						<td>request</td>
-						<td><strong>cancelAllOrders</strong></th>
+						<td><strong>cancelAllOrders</strong></td>
 						<td> </td>
 					</tr>
 				</tbody>
@@ -344,22 +344,22 @@ table, th, td {
 				<tbody>
 					<tr>
 						<td>request</td>
-						<td><strong>postTakerOrder</strong></th>
+						<td><strong>postTakerOrder</strong></td>
 						<td> </td>
 					</tr>
 					<tr>
 						<td>orderID</td>
-						<td>STRING</strong></th>
+						<td>STRING</td>
 						<td>Case sensitive order ID of maker order to match</td>
 					</tr>
 					<tr>
 						<td>amount</td>
-						<td>DECIMAL</strong></th>
+						<td>DECIMAL</td>
 						<td>Must use period for decimal place, no commas allowed</td>
 					</tr>
 					<tr>
 						<td>approveERC20</td>
-						<td>BOOLEAN</strong></th>
+						<td>BOOLEAN</td>
 						<td>(Optional) Some trades require ERC20 approvals, set true to auto-approve. All approvals require order resubmission after approval</td>
 					</tr>
 				</tbody>
@@ -377,32 +377,32 @@ table, th, td {
 				<tbody>
 					<tr>
 						<td>request</td>
-						<td><strong>postMakerOrder</strong></th>
+						<td><strong>postMakerOrder</strong></td>
 						<td> </td>
 					</tr>
 					<tr>
 						<td>orderType</td>
-						<td>STRING</strong></th>
+						<td>STRING</td>
 						<td>Can be either a <strong>BUY</strong> or <strong>SELL</strong> order</td>
 					</tr>
 					<tr>
 						<td>price</td>
-						<td>DECIMAL</strong></th>
+						<td>DECIMAL</td>
 						<td>Must use period for decimal place, no commas allowed</td>
 					</tr>
 					<tr>
 						<td>amount</td>
-						<td>DECIMAL</strong></th>
+						<td>DECIMAL</td>
 						<td>Must use period for decimal place, no commas allowed</td>
 					</tr>
 					<tr>
 						<td>minAmount</td>
-						<td>DECIMAL</strong></th>
+						<td>DECIMAL</td>
 						<td>Must use period for decimal place, no commas allowed</td>
 					</tr>
 					<tr>
 						<td>approveERC20</td>
-						<td>BOOLEAN</strong></th>
+						<td>BOOLEAN</td>
 						<td>(Optional) Some trades require ERC20 approvals, set true to auto-approve. All approvals require order resubmission after approval</td>
 					</tr>
 				</tbody>
