@@ -1823,6 +1823,10 @@ namespace NebliDex
 		
 		private void Request_CN_Status(object sender, RoutedEventArgs e)
 		{
+			if(App.trader_api_activated == true){
+				System.Windows.MessageBox.Show("Cannot go into Critical Node Mode when Trading API server running.");
+				return;
+			}
 			
 			if(App.MyOpenOrderList.Count > 0){
 				System.Windows.MessageBox.Show("Cannot go into Critical Node Mode with open orders.");
