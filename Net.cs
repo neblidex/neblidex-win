@@ -3042,7 +3042,7 @@ namespace NebliDex
 								OrderRequestList.RemoveAt(i); //Remove and move on
 							}else if(OrderRequestList[i].order_stage < 3){ //Not closed request
 								int limit = 60;
-								if(OrderRequestList[i].order_stage > 0){limit = 180;} //The validation failed to complete, give it 3 minutes
+								if(OrderRequestList[i].order_stage > 0){limit = 195;} //The validation failed to complete, give it 3 minutes 15 seconds
 								if(UTCTime() - OrderRequestList[i].utctime > limit){ //Request has been unresponded too for too long
 									//This request needs to be removed and corresponding dex notified
 									CloseFailedOrderRequest(OrderRequestList[i]);
