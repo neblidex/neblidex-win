@@ -370,6 +370,7 @@
 	        	<MenuItem Header="Change Default DNS Seed" Click="Open_DNS_Seed"/>
 	            <MenuItem Name="Menu_Item_CN" Header="Activate As Critical Node" IsCheckable="True" Click="Request_CN_Status" />
 	    		<MenuItem Header="Change Wallet Addresses" Click="Request_Change_Address"/>
+	    		<MenuItem Name="Menu_Item_Trader_API" Header="Activate Trader API" IsCheckable="True" Click="Toggle_Trader_API" />
 	        </MenuItem>
 	        <MenuItem Header="_Export">
 	        	<MenuItem Header="Export All Trade History" Click="Save_All_Trades"/>
