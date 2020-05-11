@@ -1541,6 +1541,7 @@ namespace NebliDex
 		private async void Change_Market(object sender, SelectionChangedEventArgs e)
 		{
 			if(App.main_window_loaded == false){return;}
+			if(App.trader_api_changing_markets == true){return;}
 			if(Convert.ToString(Market_Percent.Content) == "LOADING..."){return;}  //Can't change market when waiting
 			//First find which one was selected
 			string market_string = (string)Market_Box.Items[Market_Box.SelectedIndex];
